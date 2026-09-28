@@ -1,0 +1,521 @@
+/* =====================================================
+   DRIVERS PAGE
+===================================================== */
+
+.drivers-page {
+  width: 100%;
+  color: #212529;
+}
+
+/* =====================================================
+   HEADER
+===================================================== */
+
+.drivers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.drivers-header h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  color: #212529;
+}
+
+.drivers-header p {
+  margin: 6px 0 0;
+  color: #6c757d;
+  font-size: 15px;
+}
+
+/* =====================================================
+   ADD DRIVER BUTTON
+===================================================== */
+
+.add-driver-btn {
+  background-color: #0d6efd !important;
+  color: #ffffff !important;
+  border: 1px solid #0d6efd !important;
+  padding: 12px 20px !important;
+  border-radius: 8px !important;
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  box-shadow: 0 3px 8px rgba(13, 110, 253, 0.25);
+}
+
+.add-driver-btn:hover {
+  background-color: #0b5ed7 !important;
+  border-color: #0b5ed7 !important;
+}
+
+/* =====================================================
+   MESSAGE
+===================================================== */
+
+.drivers-message {
+  background-color: #e7f1ff;
+  color: #084298;
+  border: 1px solid #b6d4fe;
+  padding: 13px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+/* =====================================================
+   STAT CARDS
+===================================================== */
+
+.driver-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin-bottom: 25px;
+}
+
+.driver-stat-card {
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.driver-stat-card p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.driver-stat-card h2 {
+  margin: 8px 0 0;
+  font-size: 30px;
+  color: #212529;
+}
+
+.green-number {
+  color: #198754 !important;
+}
+
+.blue-number {
+  color: #0d6efd !important;
+}
+
+.orange-number {
+  color: #fd7e14 !important;
+}
+
+/* =====================================================
+   SEARCH AND FILTER
+===================================================== */
+
+.driver-filter-box {
+  display: flex;
+  gap: 15px;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 25px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.driver-filter-box input {
+  flex: 1;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid #adb5bd;
+  border-radius: 7px;
+  color: #212529;
+  background-color: #ffffff;
+  font-size: 14px;
+  outline: none;
+}
+
+.driver-filter-box input::placeholder {
+  color: #6c757d;
+}
+
+.driver-filter-box input:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+}
+
+.driver-filter-box select {
+  height: 44px;
+  min-width: 170px;
+  padding: 0 12px;
+  border: 1px solid #adb5bd;
+  border-radius: 7px;
+  color: #212529;
+  background-color: #ffffff;
+  font-size: 14px;
+  outline: none;
+}
+
+/* =====================================================
+   LOADING
+===================================================== */
+
+.drivers-loading {
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 50px;
+  text-align: center;
+  color: #495057;
+  font-weight: 600;
+}
+
+/* =====================================================
+   TABLE
+===================================================== */
+
+.drivers-table-container {
+  width: 100%;
+  overflow-x: auto;
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.drivers-table {
+  width: 100%;
+  min-width: 1000px;
+  border-collapse: collapse;
+}
+
+.drivers-table thead {
+  background-color: #f1f3f5;
+}
+
+.drivers-table th {
+  padding: 16px;
+  text-align: left;
+  color: #212529;
+  font-size: 14px;
+  font-weight: 700;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.drivers-table td {
+  padding: 16px;
+  color: #343a40;
+  font-size: 14px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.drivers-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.driver-name {
+  font-weight: 700;
+  color: #212529;
+  margin-bottom: 4px;
+}
+
+.driver-email {
+  color: #6c757d;
+  font-size: 13px;
+}
+
+.no-drivers {
+  text-align: center !important;
+  padding: 45px !important;
+  color: #6c757d !important;
+  font-weight: 600;
+}
+
+/* =====================================================
+   STATUS
+===================================================== */
+
+.status-badge {
+  display: inline-block;
+  padding: 6px 11px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-available {
+  background-color: #d1e7dd;
+  color: #0f5132;
+  border: 1px solid #a3cfbb;
+}
+
+.status-assigned {
+  background-color: #cfe2ff;
+  color: #084298;
+  border: 1px solid #9ec5fe;
+}
+
+.status-other {
+  background-color: #fff3cd;
+  color: #664d03;
+  border: 1px solid #ffecb5;
+}
+
+/* =====================================================
+   ACTION BUTTONS
+===================================================== */
+
+.driver-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-btn {
+  background-color: #0d6efd !important;
+  color: #ffffff !important;
+  border: 1px solid #0d6efd !important;
+  padding: 8px 14px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+.edit-btn:hover {
+  background-color: #0b5ed7 !important;
+}
+
+.delete-btn {
+  background-color: #dc3545 !important;
+  color: #ffffff !important;
+  border: 1px solid #dc3545 !important;
+  padding: 8px 14px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+.delete-btn:hover {
+  background-color: #bb2d3b !important;
+}
+
+/* =====================================================
+   MODAL
+===================================================== */
+
+.driver-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 3000;
+}
+
+.driver-modal {
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background-color: #ffffff;
+  border-radius: 14px;
+  padding: 25px;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* =====================================================
+   MODAL HEADER
+===================================================== */
+
+.driver-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 25px;
+}
+
+.driver-modal-header h2 {
+  margin: 0;
+  color: #212529;
+  font-size: 23px;
+}
+
+.driver-modal-header p {
+  margin: 5px 0 0;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.modal-close-btn {
+  background: transparent !important;
+  color: #495057 !important;
+  border: none !important;
+  font-size: 30px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+}
+
+.modal-close-btn:hover {
+  color: #dc3545 !important;
+}
+
+/* =====================================================
+   FORM
+===================================================== */
+
+.driver-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  margin-bottom: 7px;
+  color: #212529;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  height: 44px;
+  padding: 0 13px;
+  border: 1px solid #adb5bd;
+  border-radius: 7px;
+  background-color: #ffffff;
+  color: #212529;
+  font-size: 14px;
+  outline: none;
+}
+
+.form-group input::placeholder {
+  color: #6c757d;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+/* =====================================================
+   FORM BUTTONS
+===================================================== */
+
+.driver-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #dee2e6;
+}
+
+.cancel-btn {
+  background-color: #e9ecef !important;
+  color: #212529 !important;
+  border: 1px solid #adb5bd !important;
+  padding: 11px 20px !important;
+  border-radius: 7px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+.cancel-btn:hover {
+  background-color: #dee2e6 !important;
+}
+
+.save-driver-btn {
+  background-color: #0d6efd !important;
+  color: #ffffff !important;
+  border: 1px solid #0d6efd !important;
+  padding: 11px 22px !important;
+  border-radius: 7px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+.save-driver-btn:hover {
+  background-color: #0b5ed7 !important;
+}
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 992px) {
+
+  .driver-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+}
+
+@media (max-width: 768px) {
+
+  .drivers-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .add-driver-btn {
+    width: 100%;
+  }
+
+  .driver-filter-box {
+    flex-direction: column;
+  }
+
+  .driver-filter-box select {
+    width: 100%;
+  }
+
+  .driver-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .full-width {
+    grid-column: auto;
+  }
+
+}
+
+@media (max-width: 576px) {
+
+  .driver-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .driver-modal {
+    padding: 18px;
+  }
+
+  .driver-form-actions {
+    flex-direction: column;
+  }
+
+  .cancel-btn,
+  .save-driver-btn {
+    width: 100%;
+  }
+
+}

@@ -1,0 +1,284 @@
+.maintenance-page {
+  width: 100%;
+  color: #212529;
+}
+
+/* HEADER */
+
+.maintenance-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.maintenance-header h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  color: #212529;
+}
+
+.maintenance-header p {
+  margin: 6px 0 0;
+  color: #6c757d;
+}
+
+/* REFRESH */
+
+.maintenance-refresh-btn {
+  background-color: #0d6efd !important;
+  color: white !important;
+  border: 1px solid #0d6efd !important;
+  padding: 11px 20px !important;
+  border-radius: 7px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+.maintenance-refresh-btn:hover {
+  background-color: #0b5ed7 !important;
+}
+
+/* MESSAGE */
+
+.maintenance-message {
+  background-color: #e7f1ff;
+  color: #084298;
+  border: 1px solid #b6d4fe;
+  padding: 13px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+/* LOADING */
+
+.maintenance-loading {
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 50px;
+  text-align: center;
+  color: #495057;
+  font-weight: 600;
+}
+
+/* SUMMARY */
+
+.maintenance-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin-bottom: 30px;
+}
+
+.maintenance-stat-card {
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.maintenance-stat-card p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.maintenance-stat-card h2 {
+  margin: 8px 0 0;
+  font-size: 30px;
+  color: #212529;
+}
+
+.maintenance-orange {
+  color: #fd7e14 !important;
+}
+
+.maintenance-green {
+  color: #198754 !important;
+}
+
+.maintenance-blue {
+  color: #0d6efd !important;
+}
+
+/* SECTION */
+
+.maintenance-section {
+  margin-bottom: 30px;
+}
+
+.maintenance-section h2 {
+  font-size: 20px;
+  color: #212529;
+  margin: 0 0 15px;
+}
+
+/* TABLE */
+
+.maintenance-table-container {
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  overflow-x: auto;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.maintenance-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+}
+
+.maintenance-table thead {
+  background-color: #f1f3f5;
+}
+
+.maintenance-table th {
+  padding: 16px;
+  text-align: left;
+  color: #212529;
+  font-size: 14px;
+  font-weight: 700;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.maintenance-table td {
+  padding: 16px;
+  color: #343a40;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.maintenance-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* STATUS */
+
+.maintenance-status {
+  display: inline-block;
+  padding: 6px 11px;
+  border-radius: 20px;
+  background-color: #fff3cd;
+  color: #664d03;
+  border: 1px solid #ffecb5;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* NO MAINTENANCE */
+
+.no-maintenance {
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 45px 20px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.no-maintenance-icon {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 15px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background-color: #d1e7dd;
+  color: #198754;
+
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.no-maintenance h3 {
+  margin: 0;
+  color: #212529;
+}
+
+.no-maintenance p {
+  color: #6c757d;
+  margin: 8px 0 0;
+}
+
+/* STATUS OVERVIEW */
+
+.vehicle-status-list {
+  background-color: white;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.vehicle-status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 16px 20px;
+
+  border-bottom: 1px solid #e9ecef;
+
+  color: #343a40;
+}
+
+.vehicle-status-row:last-child {
+  border-bottom: none;
+}
+
+.vehicle-status-row strong {
+  font-size: 18px;
+  color: #212529;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.status-green {
+  background-color: #198754;
+}
+
+.status-blue {
+  background-color: #0d6efd;
+}
+
+.status-orange {
+  background-color: #fd7e14;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 992px) {
+  .maintenance-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .maintenance-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .maintenance-refresh-btn {
+    width: 100%;
+  }
+
+  .maintenance-summary {
+    grid-template-columns: 1fr;
+  }
+}

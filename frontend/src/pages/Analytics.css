@@ -1,0 +1,171 @@
+.analytics-page {
+  width: 100%;
+  color: #212529;
+}
+
+.analytics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.analytics-header h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  color: #212529;
+}
+
+.analytics-header p {
+  margin: 6px 0 0;
+  color: #6c757d;
+}
+
+.analytics-refresh-btn {
+  background-color: #0d6efd !important;
+  color: white !important;
+  border: 1px solid #0d6efd !important;
+  padding: 11px 20px !important;
+  border-radius: 7px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+.analytics-refresh-btn:hover {
+  background-color: #0b5ed7 !important;
+}
+
+.analytics-message {
+  background: #e7f1ff;
+  color: #084298;
+  border: 1px solid #b6d4fe;
+  padding: 13px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.analytics-loading,
+.analytics-error {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 50px;
+  text-align: center;
+  color: #495057;
+  font-weight: 600;
+}
+
+.analytics-section {
+  margin-bottom: 30px;
+}
+
+.analytics-section h2 {
+  font-size: 20px;
+  color: #212529;
+  margin-bottom: 15px;
+}
+
+.analytics-card-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.analytics-card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.analytics-card p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.analytics-card h3 {
+  margin: 10px 0 0;
+  font-size: 30px;
+  color: #212529;
+}
+
+.analytics-green {
+  color: #198754 !important;
+}
+
+.analytics-blue {
+  color: #0d6efd !important;
+}
+
+.analytics-orange {
+  color: #fd7e14 !important;
+}
+
+.analytics-red {
+  color: #dc3545 !important;
+}
+
+.distance-card {
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 25px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.distance-card p {
+  margin: 0;
+  color: #6c757d;
+  font-weight: 600;
+}
+
+.distance-card h3 {
+  margin: 8px 0 3px;
+  font-size: 36px;
+  color: #0d6efd;
+}
+
+.distance-card span {
+  color: #6c757d;
+}
+
+.distance-icon {
+  width: 65px;
+  height: 65px;
+  border-radius: 12px;
+  background: #e7f1ff;
+  color: #0d6efd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+@media (max-width: 992px) {
+  .analytics-card-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .analytics-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .analytics-refresh-btn {
+    width: 100%;
+  }
+
+  .analytics-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
