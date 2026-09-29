@@ -45,10 +45,21 @@ function Login() {
         }
       );
 
-      const data = await response.json();
+      const responseBody = await response.text();
+      let data;
+
+      try {
+        data = responseBody ? JSON.parse(responseBody) : null;
+      } catch {
+        data = null;
+      }
 
       if (!response.ok) {
-        throw new Error(data.message || "Login failed");
+        throw new Error(data?.message || `Login service returned HTTP ${response.status}.`);
+      }
+
+      if (!data?.token || !data?.user) {
+        throw new Error("Login service returned an invalid response. Please try again.");
       }
 
       // Save token
