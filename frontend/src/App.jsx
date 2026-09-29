@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import DashboardLayout from "./components/DashboardLayout";
 
 import Login from "./pages/Login";
@@ -35,82 +36,85 @@ function PublicOnlyRoute({ children }) {
 
 function App() {
   return (
-    <Routes>
+    <>
+      <Routes>
 
-      <Route
-        path="/"
-        element={
-          <PublicOnlyRoute>
-            <Login />
-          </PublicOnlyRoute>
-        }
-      />
+        <Route
+          path="/"
+          element={
+            <PublicOnlyRoute>
+              <Login />
+            </PublicOnlyRoute>
+          }
+        />
 
-      <Route
-        path="/signup"
-        element={
-          <PublicOnlyRoute>
-            <Signup />
-          </PublicOnlyRoute>
-        }
-      />
+        <Route
+          path="/signup"
+          element={
+            <PublicOnlyRoute>
+              <Signup />
+            </PublicOnlyRoute>
+          }
+        />
 
-      <Route
-        path="/dashboard"
-        element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
-      />
+        <Route
+          path="/dashboard"
+          element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
+        />
 
-      <Route
-        path="/vehicles"
-        element={<ProtectedRoute><Vehicles /></ProtectedRoute>}
-      />
+        <Route
+          path="/vehicles"
+          element={<ProtectedRoute><Vehicles /></ProtectedRoute>}
+        />
 
-      <Route
-        path="/drivers"
-        element={<ProtectedRoute><Drivers /></ProtectedRoute>}
-      />
+        <Route
+          path="/drivers"
+          element={<ProtectedRoute><Drivers /></ProtectedRoute>}
+        />
 
-      <Route
-        path="/deliveries"
-        element={<ProtectedRoute><Deliveries /></ProtectedRoute>}
-      />
+        <Route
+          path="/deliveries"
+          element={<ProtectedRoute><Deliveries /></ProtectedRoute>}
+        />
 
-      <Route
-        path="/tracking"
-        element={<ProtectedRoute><Tracking /></ProtectedRoute>}
-      />
+        <Route
+          path="/tracking"
+          element={<ProtectedRoute><Tracking /></ProtectedRoute>}
+        />
 
-      <Route
-        path="/maintenance"
-        element={<ProtectedRoute><Maintenance /></ProtectedRoute>}
-      />
+        <Route
+          path="/maintenance"
+          element={<ProtectedRoute><Maintenance /></ProtectedRoute>}
+        />
 
-      <Route
-        path="/notifications"
-        element={<ProtectedRoute><Notifications /></ProtectedRoute>}
-      />
+        <Route
+          path="/notifications"
+          element={<ProtectedRoute><Notifications /></ProtectedRoute>}
+        />
 
-      <Route
-        path="/analytics"
-        element={<ProtectedRoute><Analytics /></ProtectedRoute>}
-      />
+        <Route
+          path="/analytics"
+          element={<ProtectedRoute><Analytics /></ProtectedRoute>}
+        />
 
-      <Route
-        path="/reports"
-        element={<ProtectedRoute><Reports /></ProtectedRoute>}
-      />
+        <Route
+          path="/reports"
+          element={<ProtectedRoute><Reports /></ProtectedRoute>}
+        />
 
-      <Route
-        path="/profile"
-        element={<ProtectedRoute><Profile /></ProtectedRoute>}
-      />
+        <Route
+          path="/profile"
+          element={<ProtectedRoute><Profile /></ProtectedRoute>}
+        />
 
-      <Route
-        path="/incidents"
-        element={<ProtectedRoute><Incidents /></ProtectedRoute>}
-      />
+        <Route
+          path="/incidents"
+          element={<ProtectedRoute><Incidents /></ProtectedRoute>}
+        />
 
-    </Routes>
+      </Routes>
+      <SpeedInsights />
+    </>
   );
 }
 
