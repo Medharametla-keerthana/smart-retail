@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import "./Deliveries.css";
+import { readApiResponse } from "../utils/apiResponse";
 
 const API_URL = "/api";
 
@@ -139,8 +140,7 @@ function Deliveries() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
         body: JSON.stringify(assignmentForm),
       });
-      const data = await response.json().catch(() => null);
-      if (!data) throw new Error(`Trip API returned HTTP ${response.status} without JSON. Check Vercel Function logs for the active API backend.`);
+      const data = await readApiResponse(response, "Trip API");
       if (!response.ok) throw new Error(data.message || "Could not assign this delivery");
       setTrips((current) => current.map((trip) => trip._id === assignmentTrip._id ? data.trip : trip));
       setAssignmentTrip(null);
@@ -175,8 +175,7 @@ function Deliveries() {
           customerEmail: deliveryForm.customerEmail.trim().toLowerCase(),
         }),
       });
-      const data = await response.json().catch(() => null);
-      if (!data) throw new Error(`Trip API returned HTTP ${response.status} without JSON. Check Vercel Function logs for the active API backend.`);
+      const data = await readApiResponse(response, "Trip API");
 
       if (!response.ok) {
         throw new Error(data.message || "Could not create delivery");
@@ -238,8 +237,7 @@ function Deliveries() {
         }
       );
 
-      const data = await response.json().catch(() => null);
-      if (!data) throw new Error(`Trip API returned HTTP ${response.status} without JSON. Check Vercel Function logs for the active API backend.`);
+      const data = await readApiResponse(response, "Trip API");
 
       if (response.ok) {
         setTrips((currentTrips) =>
@@ -295,8 +293,7 @@ function Deliveries() {
         }
       );
 
-      const data = await response.json().catch(() => null);
-      if (!data) throw new Error(`Trip API returned HTTP ${response.status} without JSON. Check Vercel Function logs for the active API backend.`);
+      const data = await readApiResponse(response, "Trip API");
 
       if (response.ok) {
         setTrips((currentTrips) =>

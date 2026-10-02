@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import "./Profile.css";
+import { readApiResponse } from "../utils/apiResponse";
 
 const API_URL = "/api";
 
@@ -29,17 +30,10 @@ function Profile() {
           }
         );
 
-        const data = await response.json();
-
-        if (response.ok) {
-          setUser(data.user);
-        } else {
-          setMessage(
-            data.message || "Failed to load profile"
-          );
-        }
-      } catch {
-        setMessage("Unable to connect to backend");
+        const data = await readApiResponse(response, "Profile API");
+        setUser(data.user);
+      } catch (error) {
+        setMessage(error.message || "Unable to connect to backend");
       } finally {
         setLoading(false);
       }
@@ -61,8 +55,7 @@ function Profile() {
         },
         body: JSON.stringify({ name: user.name, email: user.email }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Could not update profile");
+      const data = await readApiResponse(response, "Profile API");
       setUser(data.user);
       localStorage.setItem("user", JSON.stringify(data.user));
       setMessage("Profile updated successfully");

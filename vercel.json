@@ -7,6 +7,9 @@
     "api/[...path].js": {
       "maxDuration": 30
     },
+    "api/auth/profile.js": {
+      "maxDuration": 30
+    },
     "api/vehicles/[...path].js": {
       "maxDuration": 30
     },
