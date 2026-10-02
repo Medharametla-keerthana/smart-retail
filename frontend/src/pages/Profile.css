@@ -14,6 +14,8 @@
 .profile-field { display:block; margin-bottom:18px; }
 .profile-field>span { display:block; margin:0 0 7px; color:#354c3e; font-size:13px; font-weight:700; }
 .profile-field .form-control { min-height:46px; border-color:#d8e2da; border-radius:9px; }
+.profile-field .form-control[readonly] { background:#f7f9f7; color:#53665a; cursor:default; }
+.profile-card.is-editing .profile-field .form-control:not([readonly]) { background:#fff; }
 .profile-field small { display:block; margin-top:6px; color:#84938a; font-size:12px; }
 .profile-form-footer { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:13px; padding-top:17px; border-top:1px solid #edf1ee; }
 .profile-form-footer>span { max-width:360px; color:#809087; font-size:12px; }
@@ -31,4 +33,4 @@
 .profile-info-item strong { max-width:68%; overflow-wrap:anywhere; color:#334b3d; font-size:13px; text-align:right; }
 .profile-info-item .profile-id { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; }
 @media(max-width:850px) { .profile-layout { grid-template-columns:1fr; } }
-@media(max-width:520px) { .profile-form-footer { align-items:stretch; flex-direction:column; }.profile-form-footer .btn { width:100%; }.profile-role-panel { flex-wrap:wrap; }.profile-role-panel .profile-status { margin-left:54px; } }
+@media(max-width:520px) { .profile-form-footer { align-items:stretch; flex-direction:column; }.profile-form-footer>.btn { width:100%; }.profile-form-footer>div { width:100%; }.profile-form-footer>div .btn { flex:1; }.profile-role-panel { flex-wrap:wrap; }.profile-role-panel .profile-status { margin-left:54px; } }
