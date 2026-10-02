@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { readApiResponse } from "../utils/apiResponse";
 
 function Tracking() {
   let currentUser = {};
@@ -47,13 +48,7 @@ function Tracking() {
           }
         );
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.message || "Failed to load vehicles"
-          );
-        }
+        const data = await readApiResponse(response, "Vehicle API");
 
         if (!cancelled) {
           setVehicles(data.vehicles || []);
@@ -101,13 +96,7 @@ function Tracking() {
         }
       );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to refresh vehicles"
-        );
-      }
+      const data = await readApiResponse(response, "Vehicle API");
 
       setVehicles(data.vehicles || []);
       setLastUpdated(new Date().toLocaleTimeString());
@@ -134,8 +123,7 @@ function Tracking() {
           speed: Number(locationForm.speed || 0),
         }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Could not save vehicle location");
+      const data = await readApiResponse(response, "Location API");
       setVehicles((current) => current.map((vehicle) => vehicle._id === locationForm.vehicleId
         ? { ...vehicle, currentLocation: locationForm.locationName.trim() || `${locationForm.latitude}, ${locationForm.longitude}` }
         : vehicle));

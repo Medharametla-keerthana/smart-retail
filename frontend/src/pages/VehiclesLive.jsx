@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { readApiResponse } from "../utils/apiResponse";
 
 const API_URL = "/api";
 const emptyVehicle = { vehicleNumber: "", vehicleType: "", model: "", capacity: "", status: "Available", currentLocation: "" };
@@ -19,8 +20,7 @@ function VehiclesLive() {
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/vehicles`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Unable to load vehicles");
+      const data = await readApiResponse(response, "Vehicle API");
       setVehicles(data.vehicles || []);
       setError("");
     } catch (loadError) {
@@ -65,8 +65,7 @@ function VehiclesLive() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
         body: JSON.stringify({ ...form, capacity: Number(form.capacity) }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Unable to save vehicle");
+      const data = await readApiResponse(response, "Vehicle API");
       setMessage(editingVehicle ? "Vehicle updated in MongoDB" : "Vehicle added to MongoDB");
       setShowForm(false);
       await loadVehicles();
@@ -81,8 +80,7 @@ function VehiclesLive() {
     if (!window.confirm("Delete this vehicle from the fleet?")) return;
     try {
       const response = await fetch(`${API_URL}/vehicles/${vehicleId}`, { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Unable to delete vehicle");
+      const data = await readApiResponse(response, "Vehicle API");
       setMessage("Vehicle deleted from MongoDB");
       await loadVehicles();
     } catch (deleteError) {

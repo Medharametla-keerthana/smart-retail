@@ -3,7 +3,7 @@ const Vehicle = require("../models/Vehicle");
 const Trip = require("../models/Trip");
 
 const canReadVehicle = async (req, vehicleId) => {
-  if (req.user.role === "fleetManager") return true;
+  if (["fleetManager", "admin"].includes(req.user.role)) return true;
   if (req.user.role === "driver") return String(req.driver?.assignedVehicle) === String(vehicleId);
   return Boolean(await Trip.exists({ vehicleId, customerEmail: req.user.email.toLowerCase() }));
 };
