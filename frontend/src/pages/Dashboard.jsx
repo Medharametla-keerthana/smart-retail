@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { readApiResponse } from "../utils/apiResponse";
 
 function Dashboard() {
   const [summary, setSummary] = useState(null);
@@ -31,13 +32,7 @@ function Dashboard() {
           }
         );
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.message || "Failed to load dashboard"
-          );
-        }
+        const data = await readApiResponse(response, "Dashboard API");
 
         if (!cancelled) {
           setSummary(data.summary);

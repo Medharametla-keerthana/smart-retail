@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { readApiResponse } from "../utils/apiResponse";
 import "./Analytics.css";
 
 const API_URL = "/api";
@@ -22,17 +23,10 @@ function Analytics() {
           }
         );
 
-        const data = await response.json();
-
-        if (response.ok) {
-          setAnalytics(data.analytics);
-        } else {
-          setMessage(
-            data.message || "Failed to load analytics"
-          );
-        }
-      } catch {
-        setMessage("Unable to connect to backend");
+        const data = await readApiResponse(response, "Analytics API");
+        setAnalytics(data.analytics);
+      } catch (error) {
+        setMessage(error.message || "Unable to connect to backend");
       } finally {
         setLoading(false);
       }

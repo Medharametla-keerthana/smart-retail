@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { readApiResponse } from "../utils/apiResponse";
 import "./Reports.css";
 
 const API_URL = "/api";
@@ -28,9 +29,10 @@ function Reports() {
             }),
           ]);
 
-        const summaryData = await summaryResponse.json();
-        const analyticsData =
-          await analyticsResponse.json();
+        const [summaryData, analyticsData] = await Promise.all([
+          readApiResponse(summaryResponse, "Dashboard summary API"),
+          readApiResponse(analyticsResponse, "Analytics API"),
+        ]);
 
         if (summaryResponse.ok) {
           setSummary(summaryData.summary);
@@ -40,14 +42,8 @@ function Reports() {
           setAnalytics(analyticsData.analytics);
         }
 
-        if (
-          !summaryResponse.ok ||
-          !analyticsResponse.ok
-        ) {
-          setMessage("Failed to load report data");
-        }
-      } catch {
-        setMessage("Unable to connect to backend");
+      } catch (error) {
+        setMessage(error.message || "Unable to connect to backend");
       } finally {
         setLoading(false);
       }

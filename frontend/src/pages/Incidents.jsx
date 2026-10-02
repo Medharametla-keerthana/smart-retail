@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { readApiResponse } from "../utils/apiResponse";
 
 const tokenHeader = () => ({ Authorization: `Bearer ${localStorage.getItem("token")}` });
 
@@ -34,13 +35,11 @@ function Incidents() {
     setError("");
     try {
       const response = await fetch("/api/incidents", { headers: tokenHeader() });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Could not load incidents");
+      const data = await readApiResponse(response, "Incidents API");
       setIncidents(data.incidents || []);
       if (isDriver) {
         const tripResponse = await fetch("/api/trips", { headers: tokenHeader() });
-        const tripData = await tripResponse.json();
-        if (!tripResponse.ok) throw new Error(tripData.message || "Could not load your deliveries");
+        const tripData = await readApiResponse(tripResponse, "Trips API");
         setTrips((tripData.trips || []).filter((trip) => ["Scheduled", "In Progress"].includes(trip.status)));
       }
     } catch (loadError) {
@@ -63,8 +62,7 @@ function Incidents() {
         headers: { ...tokenHeader(), "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, ...(incidentGps || {}), locationName: incidentGps ? `GPS ${incidentGps.latitude.toFixed(5)}, ${incidentGps.longitude.toFixed(5)}` : "" }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Could not report incident");
+      const data = await readApiResponse(response, "Incident report API");
       setForm({ tripId: "", title: "", severity: "Medium", description: "" });
       setNotice("Incident sent to the fleet manager and linked customer.");
       setAlternateRouteUrl(data.alternateRouteUrl || "");
@@ -80,8 +78,7 @@ function Incidents() {
   const resolve = async (id) => {
     try {
       const response = await fetch(`/api/incidents/${id}/resolve`, { method: "PUT", headers: tokenHeader() });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Could not resolve incident");
+      const data = await readApiResponse(response, "Incident resolution API");
       setIncidents((current) => current.map((incident) => incident._id === id ? data.incident : incident));
     } catch (resolveError) { setError(resolveError.message || "Could not resolve incident"); }
   };

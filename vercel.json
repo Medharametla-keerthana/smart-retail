@@ -4,10 +4,10 @@
   "buildCommand": "npm --prefix frontend run build",
   "outputDirectory": "frontend/dist",
   "functions": {
-    "api/[...path].js": {
+    "api/auth/[...path].js": {
       "maxDuration": 30
     },
-    "api/auth/[...path].js": {
+    "api/dashboard/[...path].js": {
       "maxDuration": 30
     },
     "api/vehicles/[...path].js": {
