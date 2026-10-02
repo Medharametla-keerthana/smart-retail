@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { readApiResponse } from "../utils/apiResponse";
 
 function Tracking() {
@@ -21,7 +21,7 @@ function Tracking() {
   const [savingLocation, setSavingLocation] = useState(false);
   const [locationMessage, setLocationMessage] = useState("");
 
-  async function loadVehicleLocations(token, fleetVehicles) {
+  const loadVehicleLocations = useCallback(async (token, fleetVehicles) => {
     const results = await Promise.allSettled(fleetVehicles.map(async (vehicle) => {
       const response = await fetch(`/api/locations/${vehicle._id}/current`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await readApiResponse(response, "Location API");
@@ -32,7 +32,7 @@ function Tracking() {
     const latestLocations = results.flatMap((result) => result.status === "fulfilled" && result.value ? [result.value] : []);
     setVehicleLocations(latestLocations);
     setMapVehicleId((current) => latestLocations.some((item) => item.vehicle._id === current) ? current : latestLocations[0]?.vehicle._id || "");
-  }
+  }, []);
 
   // =========================================
   // GET VEHICLES FROM BACKEND
@@ -89,20 +89,20 @@ function Tracking() {
     return () => {
       cancelled = true;
     };
-  }, [isDriver]);
+  }, [isDriver, loadVehicleLocations]);
 
   // =========================================
   // REFRESH VEHICLES
   // =========================================
 
-  async function handleRefresh() {
+  const handleRefresh = useCallback(async ({ silent = false } = {}) => {
     try {
-      setError("");
+      if (!silent) setError("");
 
       const token = localStorage.getItem("token");
 
       if (!token) {
-        setError("Please login again.");
+        if (!silent) setError("Please login again.");
         return;
       }
 
@@ -127,9 +127,14 @@ function Tracking() {
       }
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (error) {
-      setError(error.message);
+      if (!silent) setError(error.message);
     }
-  }
+  }, [isDriver, loadVehicleLocations]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => { void handleRefresh({ silent: true }); }, 30000);
+    return () => window.clearInterval(intervalId);
+  }, [handleRefresh]);
 
   async function submitLocation(event) {
     event.preventDefault();
@@ -663,7 +668,7 @@ function Tracking() {
               <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
                 <div>
                   <h2 className="h5 fw-bold mb-1" id="live-map-title">Live delivery map</h2>
-                  <p className="text-muted small mb-0">Latest saved GPS positions for every vehicle, whether assigned or available.</p>
+                  <p className="text-muted small mb-0">Latest saved GPS positions for all vehicles, whether assigned or available. Refreshes every 30 seconds.</p>
                 </div>
                 {vehicleLocations.length > 0 && <label className="small fw-semibold">Vehicle
                   <select className="form-select mt-1" value={mapVehicleId} onChange={(event) => setMapVehicleId(event.target.value)} aria-label="Choose a vehicle to view on the map">
