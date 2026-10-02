@@ -37,7 +37,7 @@
     "api/notifications/[...path].js": {
       "maxDuration": 30
     },
-    "api/notifications/read.js": {
+    "api/incidents/resolve.js": {
       "maxDuration": 30
     }
   },

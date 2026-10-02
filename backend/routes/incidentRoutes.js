@@ -6,5 +6,6 @@ const { authorize } = require("../middleware/authMiddleware");
 const router = express.Router();
 router.get("/", protect, authorize("fleetManager", "driver", "customer"), getIncidents);
 router.post("/", protect, authorize("driver"), reportIncident);
+router.put("/resolve", protect, authorize("fleetManager"), resolveIncident);
 router.put("/:id/resolve", protect, authorize("fleetManager"), resolveIncident);
 module.exports = router;

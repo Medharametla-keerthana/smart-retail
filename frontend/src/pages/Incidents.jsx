@@ -77,7 +77,11 @@ function Incidents() {
 
   const resolve = async (id) => {
     try {
-      const response = await fetch(`/api/incidents/${id}/resolve`, { method: "PUT", headers: tokenHeader() });
+      const response = await fetch("/api/incidents/resolve", {
+        method: "PUT",
+        headers: { ...tokenHeader(), "Content-Type": "application/json" },
+        body: JSON.stringify({ incidentId: id }),
+      });
       const data = await readApiResponse(response, "Incident resolution API");
       setIncidents((current) => current.map((incident) => incident._id === id ? data.incident : incident));
     } catch (resolveError) { setError(resolveError.message || "Could not resolve incident"); }

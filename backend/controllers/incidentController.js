@@ -90,7 +90,9 @@ const reportIncident = async (req, res) => {
 
 const resolveIncident = async (req, res) => {
   try {
-    const incident = await Incident.findByIdAndUpdate(req.params.id, { status: "Resolved" }, { new: true });
+    const incidentId = req.params.id || req.body.incidentId;
+    if (!incidentId) return res.status(400).json({ success: false, message: "Incident ID is required" });
+    const incident = await Incident.findByIdAndUpdate(incidentId, { status: "Resolved" }, { new: true });
     if (!incident) return res.status(404).json({ success: false, message: "Incident not found" });
     const trip = await Trip.findById(incident.tripId);
     if (trip?.customerEmail) {
