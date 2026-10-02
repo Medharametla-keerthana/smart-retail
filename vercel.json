@@ -4,6 +4,9 @@
   "buildCommand": "npm --prefix frontend run build",
   "outputDirectory": "frontend/dist",
   "functions": {
+    "api/[...path].js": {
+      "maxDuration": 30
+    },
     "api/auth/[...path].js": {
       "maxDuration": 30
     },
@@ -35,9 +38,6 @@
       "maxDuration": 30
     },
     "api/notifications/read.js": {
-      "maxDuration": 30
-    },
-    "api/assignments/[...path].js": {
       "maxDuration": 30
     }
   },
