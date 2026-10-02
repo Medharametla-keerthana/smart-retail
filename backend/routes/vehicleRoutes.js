@@ -14,6 +14,7 @@ const {
   deleteVehicle,
   searchVehicles,
 } = require("../controllers/vehicleController");
+const { getMaintenance, scheduleMaintenance, updateMaintenance } = require("../controllers/maintenanceController");
 
 // ==========================================
 // AUTHENTICATION MIDDLEWARE
@@ -32,6 +33,9 @@ router.post("/", protect, authorize("fleetManager"), createVehicle);
 // Search and Filter Vehicles
 // IMPORTANT: Keep this BEFORE /:id
 router.get("/search", protect, authorize("fleetManager"), searchVehicles);
+router.get("/maintenance", protect, authorize("fleetManager"), getMaintenance);
+router.post("/maintenance", protect, authorize("fleetManager"), scheduleMaintenance);
+router.put("/maintenance/:id", protect, authorize("fleetManager"), updateMaintenance);
 
 // Get All Vehicles
 router.get("/", protect, authorize("fleetManager", "driver"), getAllVehicles);

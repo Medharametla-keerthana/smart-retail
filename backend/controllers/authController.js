@@ -1,6 +1,9 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const Driver = require("../models/Driver");
+const Trip = require("../models/Trip");
+const Notification = require("../models/Notification");
+const Incident = require("../models/Incident");
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -144,9 +147,17 @@ const updateProfile = async (req, res) => {
       await Driver.findByIdAndUpdate(req.driver._id, { name, email });
     }
 
+    const oldEmail = req.user.email.toLowerCase();
     const user = await User.findByIdAndUpdate(req.user._id, { name, email }, {
       new: true, runValidators: true, select: "name email role createdAt updatedAt",
     });
+    if (email !== oldEmail) {
+      await Promise.all([
+        Trip.updateMany({ customerEmail: oldEmail }, { customerEmail: email }),
+        Notification.updateMany({ recipientEmail: oldEmail }, { recipientEmail: email }),
+        Incident.updateMany({ reporterEmail: oldEmail }, { reporterEmail: email }),
+      ]);
+    }
     return res.json({ success: true, message: "Profile updated successfully", user });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
