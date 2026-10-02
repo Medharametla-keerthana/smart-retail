@@ -17,6 +17,12 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    role: {
+      type: String,
+      enum: ["fleetManager", "driver", "customer"],
+      default: "fleetManager",
+    },
+
     password: {
       type: String,
       required: true,

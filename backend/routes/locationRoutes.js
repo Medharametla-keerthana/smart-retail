@@ -9,10 +9,11 @@ const {
 } = require("../controllers/locationController");
 
 const protect = require("../middleware/authMiddleware");
+const { authorize } = require("../middleware/authMiddleware");
 
 
 // Update Vehicle Location
-router.put("/:vehicleId", protect, updateVehicleLocation);
+router.put("/:vehicleId", protect, authorize("fleetManager", "driver"), updateVehicleLocation);
 
 // Get Current Location
 router.get("/:vehicleId/current", protect, getCurrentLocation);

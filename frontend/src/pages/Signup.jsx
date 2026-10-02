@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 
 function Signup() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", confirmPassword: "", role: "customer" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -49,7 +49,7 @@ function Signup() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password: form.password }),
+        body: JSON.stringify({ name, email, password: form.password, role: form.role }),
       });
       const data = await response.json();
 
@@ -59,7 +59,7 @@ function Signup() {
 
       navigate("/", {
         replace: true,
-        state: { message: "Account created. Please login with your credentials." },
+        state: { message: "Account created. Please login with your credentials.", role: form.role },
       });
     } catch (signupError) {
       setError(signupError.message);
@@ -86,6 +86,14 @@ function Signup() {
                 <div className="mb-3">
                   <label className="form-label fw-semibold" htmlFor="name">Full Name</label>
                   <input id="name" name="name" type="text" className="form-control form-control-lg" placeholder="Enter your name" value={form.name} onChange={handleChange} autoComplete="name" />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label fw-semibold" htmlFor="signup-role">Account type</label>
+                  <select id="signup-role" name="role" className="form-select form-select-lg" value={form.role} onChange={handleChange}>
+                    <option value="customer">Customer</option>
+                    <option value="driver">Driver (manager must add your driver record first)</option>
+                  </select>
                 </div>
 
                 <div className="mb-3">

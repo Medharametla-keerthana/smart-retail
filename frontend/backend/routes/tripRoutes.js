@@ -4,6 +4,7 @@ const router = express.Router();
 
 const {
   createTrip,
+  assignTripResources,
   getAllTrips,
   getTripById,
   updateTripStatus,
@@ -12,13 +13,15 @@ const {
 } = require("../controllers/tripController");
 
 const protect = require("../middleware/authMiddleware");
+const { authorize } = require("../middleware/authMiddleware");
 
 // ==========================================
 // TRIP ROUTES
 // ==========================================
 
 // Create Trip
-router.post("/", protect, createTrip);
+router.post("/", protect, authorize("fleetManager"), createTrip);
+router.put("/:id/assignment", protect, authorize("fleetManager"), assignTripResources);
 
 // Search and Filter Trips
 router.get("/search", protect, searchTrips);
@@ -27,10 +30,10 @@ router.get("/search", protect, searchTrips);
 router.get("/", protect, getAllTrips);
 
 // Update Trip Status
-router.put("/:id/status", protect, updateTripStatus);
+router.put("/:id/status", protect, authorize("fleetManager", "driver"), updateTripStatus);
 
 // Cancel Trip
-router.put("/:id/cancel", protect, cancelTrip);
+router.put("/:id/cancel", protect, authorize("fleetManager"), cancelTrip);
 
 // Get Single Trip
 router.get("/:id", protect, getTripById);

@@ -1,5 +1,6 @@
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
+const Driver = require("../models/Driver");
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -17,6 +18,8 @@ const generateToken = (id) => {
 const registerUser = async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    const role = req.body.role === "driver" ? "driver" : "customer";
+    const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
 
     // Check required fields
     if (!name || !email || !password) {
@@ -27,7 +30,7 @@ const registerUser = async (req, res) => {
     }
 
     // Check if user already exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email: normalizedEmail });
 
     if (userExists) {
       return res.status(400).json({
@@ -36,11 +39,16 @@ const registerUser = async (req, res) => {
       });
     }
 
+    if (role === "driver" && !(await Driver.findOne({ email: normalizedEmail }))) {
+      return res.status(400).json({ success: false, message: "Ask your fleet manager to add your driver profile before registering" });
+    }
+
     // Create user
     const user = await User.create({
       name,
-      email,
+      email: normalizedEmail,
       password,
+      role,
     });
 
     // Generate token
@@ -54,6 +62,7 @@ const registerUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
 
@@ -69,7 +78,7 @@ const registerUser = async (req, res) => {
 // Login User
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, role: requestedRole } = req.body;
 
     // Check required fields
     if (!email || !password) {
@@ -80,7 +89,7 @@ const loginUser = async (req, res) => {
     }
 
     // Find user and include password
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.findOne({ email: email.trim().toLowerCase() }).select("+password");
 
     // Check user and password
     if (!user || !(await user.comparePassword(password))) {
@@ -88,6 +97,14 @@ const loginUser = async (req, res) => {
         success: false,
         message: "Invalid email or password",
       });
+    }
+
+    if (requestedRole && requestedRole !== user.role) {
+      return res.status(403).json({ success: false, message: `This account is registered as ${user.role}` });
+    }
+
+    if (user.role === "driver" && !(await Driver.findOne({ email: user.email }))) {
+      return res.status(403).json({ success: false, message: "No driver profile is linked to this account" });
     }
 
     // Generate token
@@ -101,6 +118,7 @@ const loginUser = async (req, res) => {
         _id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
 
@@ -112,28 +130,24 @@ const loginUser = async (req, res) => {
   }
 };
 
-// Update the signed-in user's basic profile details.
 const updateProfile = async (req, res) => {
   try {
-    const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
-    const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
-
-    if (!name || !email) {
-      return res.status(400).json({ success: false, message: "Name and email are required" });
-    }
+    const name = String(req.body.name || "").trim();
+    const email = String(req.body.email || "").trim().toLowerCase();
+    if (!name || !email) return res.status(400).json({ success: false, message: "Name and email are required" });
 
     const duplicate = await User.findOne({ email, _id: { $ne: req.user._id } });
-    if (duplicate) {
-      return res.status(409).json({ success: false, message: "That email is already in use" });
+    if (duplicate) return res.status(409).json({ success: false, message: "That email is already in use" });
+    if (req.user.role === "driver") {
+      const driverConflict = await Driver.findOne({ email, _id: { $ne: req.driver._id } });
+      if (driverConflict) return res.status(409).json({ success: false, message: "That email is already used by another driver" });
+      await Driver.findByIdAndUpdate(req.driver._id, { name, email });
     }
 
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      { name, email },
-      { new: true, runValidators: true, select: "name email createdAt updatedAt" }
-    );
-
-    return res.status(200).json({ success: true, message: "Profile updated successfully", user });
+    const user = await User.findByIdAndUpdate(req.user._id, { name, email }, {
+      new: true, runValidators: true, select: "name email role createdAt updatedAt",
+    });
+    return res.json({ success: true, message: "Profile updated successfully", user });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

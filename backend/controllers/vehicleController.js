@@ -64,7 +64,8 @@ const createVehicle = async (req, res) => {
 
 const getAllVehicles = async (req, res) => {
   try {
-    const vehicles = await Vehicle.find().populate(
+    const filter = req.user.role === "driver" ? { _id: req.driver?.assignedVehicle } : {};
+    const vehicles = await Vehicle.find(filter).populate(
       "driverId",
       "name email phone licenseNumber status currentLocation"
     );
@@ -89,6 +90,10 @@ const getAllVehicles = async (req, res) => {
 const getVehicleById = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (req.user.role === "driver" && String(req.driver?.assignedVehicle) !== String(id)) {
+      return res.status(403).json({ success: false, message: "You can only view your assigned vehicle" });
+    }
 
     const vehicle = await Vehicle.findById(id).populate(
       "driverId",

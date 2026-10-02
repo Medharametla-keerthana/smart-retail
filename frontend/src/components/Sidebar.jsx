@@ -1,6 +1,35 @@
 import { NavLink } from "react-router-dom";
 
 function Sidebar({ sidebarOpen, closeSidebar }) {
+  let user = {};
+  try { user = JSON.parse(localStorage.getItem("user") || "{}"); } catch { user = {}; }
+  const role = user.role || "fleetManager";
+  const links = role === "fleetManager"
+    ? [
+        { to: "/dashboard", icon: "bi-grid", label: "Dashboard", group: "WORKSPACE" },
+        { to: "/vehicles", icon: "bi-truck", label: "Vehicles", group: "FLEET MANAGEMENT" },
+        { to: "/drivers", icon: "bi-person-badge", label: "Drivers", group: "FLEET MANAGEMENT" },
+        { to: "/deliveries", icon: "bi-box-seam", label: "Deliveries", group: "FLEET MANAGEMENT" },
+        { to: "/incidents", icon: "bi-exclamation-triangle", label: "Incidents", group: "FLEET MANAGEMENT" },
+        { to: "/tracking", icon: "bi-geo-alt", label: "Live Tracking", group: "MONITORING" },
+        { to: "/maintenance", icon: "bi-tools", label: "Maintenance", group: "MONITORING" },
+        { to: "/notifications", icon: "bi-bell", label: "Notifications", group: "MONITORING" },
+        { to: "/analytics", icon: "bi-bar-chart-line", label: "Analytics", group: "INSIGHTS" },
+        { to: "/reports", icon: "bi-file-earmark-bar-graph", label: "Reports", group: "INSIGHTS" },
+      ]
+    : role === "driver"
+      ? [
+          { to: "/dashboard", icon: "bi-grid", label: "My workspace", group: "DRIVER" },
+          { to: "/deliveries", icon: "bi-box-seam", label: "My deliveries", group: "DRIVER" },
+          { to: "/tracking", icon: "bi-geo-alt", label: "Update location", group: "DRIVER" },
+          { to: "/incidents", icon: "bi-exclamation-triangle", label: "Report incident", group: "DRIVER" },
+          { to: "/notifications", icon: "bi-bell", label: "Notifications", group: "ACCOUNT" },
+        ]
+      : [
+          { to: "/dashboard", icon: "bi-grid", label: "Overview", group: "CUSTOMER" },
+          { to: "/deliveries", icon: "bi-box-seam", label: "My deliveries", group: "CUSTOMER" },
+          { to: "/notifications", icon: "bi-bell", label: "Notifications", group: "CUSTOMER" },
+        ];
 
   return (
 
@@ -42,156 +71,14 @@ function Sidebar({ sidebarOpen, closeSidebar }) {
       <div className="sidebar-menu">
 
 
-        {/* DASHBOARD */}
-
-        <NavLink
-          to="/dashboard"
-          className="sidebar-link"
-          onClick={closeSidebar}
-        >
-
-          <i className="bi bi-grid me-3"></i>
-
-          Dashboard
-
-        </NavLink>
-
-
-        {/* FLEET MANAGEMENT */}
-
-        <p className="sidebar-title">
-          FLEET MANAGEMENT
-        </p>
-
-
-        <NavLink
-          to="/vehicles"
-          className="sidebar-link"
-          onClick={closeSidebar}
-        >
-
-          <i className="bi bi-truck me-3"></i>
-
-          Vehicles
-
-        </NavLink>
-
-
-        <NavLink
-          to="/drivers"
-          className="sidebar-link"
-          onClick={closeSidebar}
-        >
-
-          <i className="bi bi-person-badge me-3"></i>
-
-          Drivers
-
-        </NavLink>
-
-
-        <NavLink
-          to="/deliveries"
-          className="sidebar-link"
-          onClick={closeSidebar}
-        >
-
-          <i className="bi bi-box-seam me-3"></i>
-
-          Deliveries
-
-        </NavLink>
-
-        <NavLink
-          to="/incidents"
-          className="sidebar-link"
-          onClick={closeSidebar}
-        >
-
-          <i className="bi bi-exclamation-triangle me-3"></i>
-
-          Incidents
-
-        </NavLink>
-
-
-        {/* MONITORING */}
-
-        <p className="sidebar-title">
-          MONITORING
-        </p>
-
-
-        <NavLink
-          to="/tracking"
-          className="sidebar-link"
-          onClick={closeSidebar}
-        >
-
-          <i className="bi bi-geo-alt me-3"></i>
-
-          Live Tracking
-
-        </NavLink>
-
-
-        <NavLink
-          to="/maintenance"
-          className="sidebar-link"
-          onClick={closeSidebar}
-        >
-
-          <i className="bi bi-tools me-3"></i>
-
-          Maintenance
-
-        </NavLink>
-
-
-        <NavLink
-          to="/notifications"
-          className="sidebar-link"
-          onClick={closeSidebar}
-        >
-
-          <i className="bi bi-bell me-3"></i>
-
-          Notifications
-
-        </NavLink>
-
-
-        {/* INSIGHTS */}
-
-        <p className="sidebar-title">
-          INSIGHTS
-        </p>
-
-
-        <NavLink
-          to="/analytics"
-          className="sidebar-link"
-          onClick={closeSidebar}
-        >
-
-          <i className="bi bi-bar-chart-line me-3"></i>
-
-          Analytics
-
-        </NavLink>
-
-
-        <NavLink
-          to="/reports"
-          className="sidebar-link"
-          onClick={closeSidebar}
-        >
-
-          <i className="bi bi-file-earmark-bar-graph me-3"></i>
-
-          Reports
-
-        </NavLink>
+        {links.map((link, index) => (
+          <div key={link.to}>
+            {(index === 0 || link.group !== links[index - 1]?.group) && <p className="sidebar-title">{link.group}</p>}
+            <NavLink to={link.to} className="sidebar-link" onClick={closeSidebar}>
+              <i className={`bi ${link.icon} me-3`}></i>{link.label}
+            </NavLink>
+          </div>
+        ))}
 
       </div>
 

@@ -1,6 +1,18 @@
 const Trip = require("../models/Trip");
 const Vehicle = require("../models/Vehicle");
 const Driver = require("../models/Driver");
+const Notification = require("../models/Notification");
+
+const notifyCustomer = async (trip, title, message, category = "Delivery", incidentId = null) => {
+  if (!trip.customerEmail) return;
+  await Notification.create({ recipientEmail: trip.customerEmail, title, message, category, tripId: trip._id, incidentId });
+};
+
+const roleFilter = (user, driver) => user.role === "driver"
+  ? { driverId: driver?._id }
+  : user.role === "customer"
+    ? { customerEmail: user.email.toLowerCase() }
+    : {};
 
 // Create Trip
 const createTrip = async (req, res) => {
@@ -13,13 +25,14 @@ const createTrip = async (req, res) => {
       cargoDetails,
       distance,
       startTime,
+      customerName,
+      customerEmail,
     } = req.body;
 
-    if (!vehicleId || !driverId || !source || !destination) {
+    if (!vehicleId || !driverId || !source || !destination || !customerEmail?.trim()) {
       return res.status(400).json({
         success: false,
-        message:
-          "Vehicle ID, Driver ID, source and destination are required",
+        message: "Vehicle, driver, source, destination, and customer email are required",
       });
     }
 
@@ -48,54 +61,17 @@ const createTrip = async (req, res) => {
       });
     }
 
-    if (driver.status !== "Available" && driver.status !== "Assigned") {
-      return res.status(400).json({
-        success: false,
-        message: "The selected driver is not available",
-      });
-    }
+    if (!["Available", "Assigned"].includes(driver.status)) return res.status(400).json({ success: false, message: "The selected driver is not available" });
+    if (vehicle.driverId && String(vehicle.driverId) !== String(driverId)) return res.status(400).json({ success: false, message: "A different driver is already assigned to this vehicle" });
+    if (driver.assignedVehicle && String(driver.assignedVehicle) !== String(vehicleId)) return res.status(400).json({ success: false, message: "The driver is assigned to a different vehicle" });
 
-    const assignedVehicleId = vehicle.driverId?.toString();
-    const driverVehicleId = driver.assignedVehicle?.toString();
-
-    if (assignedVehicleId && assignedVehicleId !== driverId) {
-      return res.status(400).json({
-        success: false,
-        message: "A different driver is already assigned to this vehicle",
-      });
-    }
-
-    if (driverVehicleId && driverVehicleId !== vehicleId) {
-      return res.status(400).json({
-        success: false,
-        message: "The selected driver is assigned to a different vehicle",
-      });
-    }
-
-    const activeTrip = await Trip.findOne({
-      status: { $in: ["Scheduled", "In Progress"] },
-      $or: [{ vehicleId }, { driverId }],
-    });
-
-    if (activeTrip) {
-      return res.status(400).json({
-        success: false,
-        message: "The selected vehicle or driver already has an active delivery",
-      });
-    }
-
-    if (driver.status === "Assigned" && assignedVehicleId !== driverId && driverVehicleId !== vehicleId) {
-      return res.status(400).json({
-        success: false,
-        message: "The selected driver is already assigned elsewhere",
-      });
-    }
+    const activeTrip = await Trip.findOne({ status: { $in: ["Scheduled", "In Progress"] }, $or: [{ vehicleId }, { driverId }] });
+    if (activeTrip) return res.status(400).json({ success: false, message: "The selected vehicle or driver already has an active delivery" });
 
     vehicle.driverId = driverId;
     vehicle.status = "Reserved";
     driver.assignedVehicle = vehicleId;
     driver.status = "Assigned";
-
     await Promise.all([vehicle.save(), driver.save()]);
 
     const trip = await Trip.create({
@@ -103,20 +79,22 @@ const createTrip = async (req, res) => {
       driverId,
       source,
       destination,
+      customerName,
+      customerEmail: customerEmail?.trim().toLowerCase(),
       cargoDetails,
       distance,
       startTime,
       status: "Scheduled",
     });
 
-    const populatedTrip = await Trip.findById(trip._id)
-      .populate("vehicleId", "vehicleNumber vehicleType model status currentLocation")
-      .populate("driverId", "name email phone licenseNumber status currentLocation");
+    await notifyCustomer(trip, "Delivery scheduled", `Your delivery from ${trip.source} to ${trip.destination} has been scheduled.`);
 
     res.status(201).json({
       success: true,
       message: "Trip created successfully",
-      trip: populatedTrip,
+      trip: await Trip.findById(trip._id)
+        .populate("vehicleId", "vehicleNumber vehicleType model status currentLocation")
+        .populate("driverId", "name email phone licenseNumber status currentLocation"),
     });
 
   } catch (error) {
@@ -127,19 +105,71 @@ const createTrip = async (req, res) => {
   }
 };
 
+const assignTripResources = async (req, res) => {
+  try {
+    const { customerName, customerEmail } = req.body;
+    const trip = await Trip.findById(req.params.id);
+    if (!trip) return res.status(404).json({ success: false, message: "Delivery not found" });
+    if (!["Scheduled", "In Progress"].includes(trip.status)) return res.status(400).json({ success: false, message: "Only active deliveries can be assigned" });
+    if (trip.status === "In Progress") return res.status(400).json({ success: false, message: "Resources cannot be changed while a delivery is in progress" });
+    const vehicleId = req.body.vehicleId || trip.vehicleId?.toString();
+    const driverId = req.body.driverId || trip.driverId?.toString();
+    if (!vehicleId || !driverId) return res.status(400).json({ success: false, message: "Select a vehicle and a driver" });
+    if (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(customerEmail).trim())) {
+      return res.status(400).json({ success: false, message: "Enter a valid customer email" });
+    }
+
+    const [vehicle, driver] = await Promise.all([Vehicle.findById(vehicleId), Driver.findById(driverId)]);
+    if (!vehicle || !driver) return res.status(404).json({ success: false, message: "The selected vehicle or driver was not found" });
+    const resourcesChanged = String(trip.vehicleId) !== String(vehicle._id) || String(trip.driverId) !== String(driver._id);
+    if (resourcesChanged && (vehicle.status !== "Available" || !["Available", "Assigned"].includes(driver.status))) {
+      return res.status(409).json({ success: false, message: "The selected vehicle or driver is unavailable" });
+    }
+    if (resourcesChanged && driver.assignedVehicle && String(driver.assignedVehicle) !== String(vehicle._id)) {
+      return res.status(409).json({ success: false, message: "The selected driver is assigned to another vehicle" });
+    }
+    if (resourcesChanged) {
+      const activeTrip = await Trip.findOne({ _id: { $ne: trip._id }, status: { $in: ["Scheduled", "In Progress"] }, $or: [{ vehicleId }, { driverId }] });
+      if (activeTrip) return res.status(409).json({ success: false, message: "The selected vehicle or driver is already assigned to another delivery" });
+
+      const [oldVehicle, oldDriver] = await Promise.all([Vehicle.findById(trip.vehicleId), Driver.findById(trip.driverId)]);
+      if (oldVehicle && String(oldVehicle._id) !== String(vehicle._id) && oldVehicle.status === "Reserved") {
+        oldVehicle.status = "Available";
+        oldVehicle.driverId = null;
+      }
+      if (oldDriver && String(oldDriver._id) !== String(driver._id) && oldDriver.status === "Assigned") {
+        oldDriver.status = "Available";
+        oldDriver.assignedVehicle = null;
+      }
+      vehicle.driverId = driver._id;
+      vehicle.status = "Reserved";
+      driver.assignedVehicle = vehicle._id;
+      driver.status = "Assigned";
+      await Promise.all([vehicle.save(), driver.save(), oldVehicle?.save(), oldDriver?.save()].filter(Boolean));
+    }
+    trip.vehicleId = vehicle._id;
+    trip.driverId = driver._id;
+    if (customerName !== undefined) trip.customerName = String(customerName).trim();
+    if (customerEmail !== undefined) trip.customerEmail = String(customerEmail).trim().toLowerCase();
+    await trip.save();
+    if (trip.customerEmail) await notifyCustomer(trip, "Delivery details updated", `Your delivery from ${trip.source} to ${trip.destination} is linked to your customer account.`);
+    const assigned = await Trip.findById(trip._id)
+      .populate("vehicleId", "vehicleNumber vehicleType status currentLocation")
+      .populate("driverId", "name email phone status");
+    return res.json({ success: true, trip: assigned, message: "Vehicle and driver assigned" });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 
 // Get All Trips
 const getAllTrips = async (req, res) => {
   try {
-    const trips = await Trip.find()
-      .populate(
-        "vehicleId",
-        "vehicleNumber vehicleType model status currentLocation"
-      )
-      .populate(
-        "driverId",
-        "name email phone licenseNumber status currentLocation"
-      );
+    const filter = roleFilter(req.user, req.driver);
+    const trips = await Trip.find(filter)
+      .populate({ path: "vehicleId", select: "vehicleNumber vehicleType model status currentLocation", transform: (doc, id) => doc || { _id: id, vehicleNumber: "Vehicle record unavailable" } })
+      .populate({ path: "driverId", select: "name email phone licenseNumber status currentLocation", transform: (doc, id) => doc || { _id: id, name: "Driver record unavailable" } });
 
     res.status(200).json({
       success: true,
@@ -161,7 +191,7 @@ const getTripById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const trip = await Trip.findById(id)
+    const trip = await Trip.findOne({ _id: id, ...roleFilter(req.user, req.driver) })
       .populate(
         "vehicleId",
         "vehicleNumber vehicleType model capacity status currentLocation"
@@ -229,59 +259,33 @@ const updateTripStatus = async (req, res) => {
       });
     }
 
+    if (req.user.role === "customer" || (req.user.role === "driver" && String(trip.driverId) !== String(req.driver?._id))) {
+      return res.status(403).json({ success: false, message: "You can only update your assigned deliveries" });
+    }
+
+    if (status === "Cancelled") return res.status(400).json({ success: false, message: "Use the cancel delivery action to cancel a trip" });
+    if (status === "In Progress" && trip.status !== "Scheduled") {
+      return res.status(400).json({ success: false, message: "Only scheduled deliveries can be started" });
+    }
+    if (status === "Completed" && trip.status !== "In Progress") {
+      return res.status(400).json({ success: false, message: "Only in-progress deliveries can be completed" });
+    }
+
+    const [vehicle, driver] = await Promise.all([
+      Vehicle.findById(trip.vehicleId),
+      Driver.findById(trip.driverId),
+    ]);
+    if (!vehicle || !driver) {
+      return res.status(409).json({ success: false, message: "This delivery is missing its assigned vehicle or driver. Reassign the missing resource before starting it." });
+    }
+
     if (status === "In Progress") {
-      if (trip.status !== "Scheduled") {
-        return res.status(400).json({
-          success: false,
-          message: "Only scheduled deliveries can be started",
-        });
+      if (!["Available", "Reserved"].includes(vehicle.status) || !["Available", "Assigned"].includes(driver.status)) {
+        return res.status(409).json({ success: false, message: "The assigned vehicle or driver is busy or unavailable" });
       }
-
-      const activeTrip = await Trip.findOne({
-        _id: { $ne: trip._id },
-        status: { $in: ["Scheduled", "In Progress"] },
-        $or: [{ vehicleId: trip.vehicleId }, { driverId: trip.driverId }],
-      });
-
-      if (activeTrip) {
-        return res.status(400).json({
-          success: false,
-          message: "The vehicle or driver is assigned to another active delivery",
-        });
-      }
-
-      const [vehicle, driver] = await Promise.all([
-        Vehicle.findById(trip.vehicleId),
-        Driver.findById(trip.driverId),
-      ]);
-
-      if (!vehicle || !driver) {
-        return res.status(404).json({
-          success: false,
-          message: "The delivery vehicle or driver could not be found",
-        });
-      }
-
-      if (
-        !["Available", "Reserved"].includes(vehicle.status) ||
-        !["Available", "Assigned"].includes(driver.status)
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: "The delivery vehicle or driver is no longer available",
-        });
-      }
-
       vehicle.status = "On Trip";
       driver.status = "On Trip";
       await Promise.all([vehicle.save(), driver.save()]);
-    }
-
-    if (status === "Completed" && trip.status !== "In Progress") {
-      return res.status(400).json({
-        success: false,
-        message: "Only in-progress deliveries can be completed",
-      });
     }
 
     trip.status = status;
@@ -293,15 +297,12 @@ const updateTripStatus = async (req, res) => {
     await trip.save();
 
     if (status === "Completed") {
-      const [vehicle, driver] = await Promise.all([
-        Vehicle.findById(trip.vehicleId),
-        Driver.findById(trip.driverId),
-      ]);
-
-      if (vehicle?.status === "On Trip") vehicle.status = "Available";
-      if (driver?.status === "On Trip") driver.status = "Available";
-      await Promise.all([vehicle?.save(), driver?.save()].filter(Boolean));
+      vehicle.status = "Available";
+      driver.status = "Available";
+      await Promise.all([vehicle.save(), driver.save()]);
     }
+    if (status === "In Progress") await notifyCustomer(trip, "Delivery in progress", `Your delivery from ${trip.source} to ${trip.destination} is now on the way.`);
+    if (status === "Completed") await notifyCustomer(trip, "Delivery completed", `Your delivery to ${trip.destination} has been completed.`);
 
     res.status(200).json({
       success: true,
@@ -332,6 +333,8 @@ const cancelTrip = async (req, res) => {
       });
     }
 
+    if (req.user.role !== "fleetManager") return res.status(403).json({ success: false, message: "Only fleet managers can cancel deliveries" });
+
     if (trip.status === "Completed") {
       return res.status(400).json({
         success: false,
@@ -339,25 +342,12 @@ const cancelTrip = async (req, res) => {
       });
     }
 
-    const [vehicle, driver] = await Promise.all([
-      Vehicle.findById(trip.vehicleId),
-      Driver.findById(trip.driverId),
-    ]);
-
-    if (vehicle?.status === "Reserved" || vehicle?.status === "On Trip") {
-      vehicle.status = "Available";
-    }
-    if (driver?.status === "Assigned" || driver?.status === "On Trip") {
-      driver.status = "Available";
-    }
-
     trip.status = "Cancelled";
-
-    await Promise.all([
-      trip.save(),
-      vehicle?.save(),
-      driver?.save(),
-    ].filter(Boolean));
+    const [vehicle, driver] = await Promise.all([Vehicle.findById(trip.vehicleId), Driver.findById(trip.driverId)]);
+    if (vehicle && ["Reserved", "On Trip"].includes(vehicle.status)) vehicle.status = "Available";
+    if (driver && ["Assigned", "On Trip"].includes(driver.status)) driver.status = "Available";
+    await Promise.all([trip.save(), vehicle?.save(), driver?.save()].filter(Boolean));
+    await notifyCustomer(trip, "Delivery cancelled", `Your delivery from ${trip.source} to ${trip.destination} was cancelled.`);
 
     res.status(200).json({
       success: true,
@@ -385,7 +375,7 @@ const searchTrips = async (req, res) => {
       driverId,
     } = req.query;
 
-    const filter = {};
+    const filter = roleFilter(req.user, req.driver);
 
     // Search by source or destination
     if (search) {
@@ -445,6 +435,7 @@ const searchTrips = async (req, res) => {
 
 module.exports = {
   createTrip,
+  assignTripResources,
   getAllTrips,
   getTripById,
   updateTripStatus,

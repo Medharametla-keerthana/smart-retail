@@ -7,6 +7,7 @@ function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState(location.state?.role || "fleetManager");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(location.state?.message || "");
@@ -41,6 +42,7 @@ function Login() {
           body: JSON.stringify({
             email: normalizedEmail,
             password: password,
+            role,
           }),
         }
       );
@@ -115,6 +117,15 @@ function Login() {
               <form onSubmit={handleLogin}>
 
                 {/* Email */}
+
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">Sign in as</label>
+                  <select className="form-select form-select-lg" value={role} onChange={(event) => setRole(event.target.value)}>
+                    <option value="fleetManager">Fleet manager</option>
+                    <option value="driver">Driver</option>
+                    <option value="customer">Customer</option>
+                  </select>
+                </div>
 
                 <div className="mb-3">
 

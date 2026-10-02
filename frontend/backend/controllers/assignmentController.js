@@ -39,23 +39,10 @@ const assignDriverToVehicle = async (req, res) => {
     }
 
     if (vehicle.status !== "Available" || driver.status !== "Available") {
-      return res.status(400).json({
-        success: false,
-        message: "Only an available vehicle and driver can be assigned",
-      });
+      return res.status(400).json({ success: false, message: "Only an available vehicle and driver can be assigned" });
     }
-
-    const activeTrip = await Trip.findOne({
-      status: { $in: ["Scheduled", "In Progress"] },
-      $or: [{ vehicleId }, { driverId }],
-    });
-
-    if (activeTrip) {
-      return res.status(400).json({
-        success: false,
-        message: "The vehicle or driver already has an active delivery",
-      });
-    }
+    const activeTrip = await Trip.findOne({ status: { $in: ["Scheduled", "In Progress"] }, $or: [{ vehicleId }, { driverId }] });
+    if (activeTrip) return res.status(400).json({ success: false, message: "The vehicle or driver already has an active delivery" });
 
     // Check if vehicle already has a driver
     if (vehicle.driverId) {
@@ -141,17 +128,8 @@ const removeDriverAssignment = async (req, res) => {
       });
     }
 
-    const activeTrip = await Trip.findOne({
-      status: { $in: ["Scheduled", "In Progress"] },
-      $or: [{ vehicleId }, { driverId: vehicle.driverId }],
-    });
-
-    if (activeTrip) {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot remove the driver while the vehicle has an active delivery",
-      });
-    }
+    const activeTrip = await Trip.findOne({ status: { $in: ["Scheduled", "In Progress"] }, $or: [{ vehicleId }, { driverId: vehicle.driverId }] });
+    if (activeTrip) return res.status(400).json({ success: false, message: "Cannot remove a driver from an active delivery" });
 
     // Store driver ID before removing
     const driverId = vehicle.driverId;

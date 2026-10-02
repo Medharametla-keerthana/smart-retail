@@ -4,10 +4,17 @@ import "./Deliveries.css";
 const API_URL = "/api";
 
 function Deliveries() {
+  let user = {};
+  try { user = JSON.parse(localStorage.getItem("user") || "{}"); } catch { user = {}; }
+  const isManager = !user.role || user.role === "fleetManager";
+  const isDriver = user.role === "driver";
   const [trips, setTrips] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [assignmentTrip, setAssignmentTrip] = useState(null);
+  const [assignmentForm, setAssignmentForm] = useState({ vehicleId: "", driverId: "" });
+  const [savingAssignment, setSavingAssignment] = useState(false);
   const [loadingResources, setLoadingResources] = useState(false);
   const [savingDelivery, setSavingDelivery] = useState(false);
   const [deliveryForm, setDeliveryForm] = useState({
@@ -18,6 +25,8 @@ function Deliveries() {
     cargoDetails: "",
     distance: "",
     startTime: "",
+    customerName: "",
+    customerEmail: "",
   });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -91,6 +100,55 @@ function Deliveries() {
     }
   };
 
+  const openAssignmentForm = async (trip) => {
+    setAssignmentTrip(trip);
+    setAssignmentForm({
+      vehicleId: trip.vehicleId?._id || "",
+      driverId: trip.driverId?._id || "",
+      customerName: trip.customerName || "",
+      customerEmail: trip.customerEmail || "",
+    });
+    setLoadingResources(true);
+    try {
+      const token = localStorage.getItem("token");
+      const [vehicleResponse, driverResponse] = await Promise.all([
+        fetch(`${API_URL}/vehicles`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/drivers`, { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const [vehicleData, driverData] = await Promise.all([vehicleResponse.json(), driverResponse.json()]);
+      if (!vehicleResponse.ok || !driverResponse.ok) throw new Error(vehicleData.message || driverData.message || "Could not load available resources");
+      setVehicles(vehicleData.vehicles || []);
+      setDrivers(driverData.drivers || []);
+    } catch (error) {
+      setMessage(error.message || "Could not load available vehicles and drivers");
+      setAssignmentTrip(null);
+    } finally {
+      setLoadingResources(false);
+    }
+  };
+
+  const saveAssignment = async (event) => {
+    event.preventDefault();
+    setSavingAssignment(true);
+    try {
+      const response = await fetch(`${API_URL}/trips/${assignmentTrip._id}/assignment`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+        body: JSON.stringify(assignmentForm),
+      });
+      const data = await response.json().catch(() => null);
+      if (!data) throw new Error(`Trip API returned HTTP ${response.status} without JSON. Check Vercel Function logs for the active API backend.`);
+      if (!response.ok) throw new Error(data.message || "Could not assign this delivery");
+      setTrips((current) => current.map((trip) => trip._id === assignmentTrip._id ? data.trip : trip));
+      setAssignmentTrip(null);
+      setMessage("Vehicle and driver assigned to delivery.");
+    } catch (error) {
+      setMessage(error.message || "Could not assign this delivery");
+    } finally {
+      setSavingAssignment(false);
+    }
+  };
+
   const submitDelivery = async (event) => {
     event.preventDefault();
     setSavingDelivery(true);
@@ -110,9 +168,12 @@ function Deliveries() {
           startTime: deliveryForm.startTime
             ? new Date(deliveryForm.startTime).toISOString()
             : undefined,
+          customerName: deliveryForm.customerName,
+          customerEmail: deliveryForm.customerEmail.trim().toLowerCase(),
         }),
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
+      if (!data) throw new Error(`Trip API returned HTTP ${response.status} without JSON. Check Vercel Function logs for the active API backend.`);
 
       if (!response.ok) {
         throw new Error(data.message || "Could not create delivery");
@@ -128,6 +189,8 @@ function Deliveries() {
         cargoDetails: "",
         distance: "",
         startTime: "",
+        customerName: "",
+        customerEmail: "",
       });
       setMessage("Delivery created and vehicle and driver reserved.");
       window.setTimeout(() => setMessage(""), 4000);
@@ -159,7 +222,8 @@ function Deliveries() {
         }
       );
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
+      if (!data) throw new Error(`Trip API returned HTTP ${response.status} without JSON. Check Vercel Function logs for the active API backend.`);
 
       if (response.ok) {
         setTrips((currentTrips) =>
@@ -185,8 +249,8 @@ function Deliveries() {
       } else {
         setMessage(data.message || "Failed to update trip status");
       }
-    } catch {
-      setMessage("Unable to connect to backend");
+    } catch (error) {
+      setMessage(error instanceof TypeError ? "Could not reach the trip API. Check the Vercel function deployment and MongoDB environment settings." : error.message || "Could not update delivery status");
     }
   };
 
@@ -215,7 +279,8 @@ function Deliveries() {
         }
       );
 
-      const data = await response.json();
+      const data = await response.json().catch(() => null);
+      if (!data) throw new Error(`Trip API returned HTTP ${response.status} without JSON. Check Vercel Function logs for the active API backend.`);
 
       if (response.ok) {
         setTrips((currentTrips) =>
@@ -237,8 +302,8 @@ function Deliveries() {
       } else {
         setMessage(data.message || "Failed to cancel trip");
       }
-    } catch {
-      setMessage("Unable to connect to backend");
+    } catch (error) {
+      setMessage(error instanceof TypeError ? "Could not reach the trip API. Check the Vercel function deployment and MongoDB environment settings." : error.message || "Could not cancel delivery");
     }
   };
 
@@ -350,9 +415,9 @@ function Deliveries() {
         </p>
         </div>
         <div className="delivery-header-actions">
-          <button type="button" className="delivery-add-button" onClick={openCreateForm}>
+          {isManager && <button type="button" className="delivery-add-button" onClick={openCreateForm}>
             <span aria-hidden="true">+</span> Add delivery
-          </button>
+          </button>}
           <div className="delivery-live-indicator"><span></span>Trip overview</div>
         </div>
       </div>
@@ -390,6 +455,14 @@ function Deliveries() {
                   <input required value={deliveryForm.destination} onChange={(event) => setDeliveryForm({ ...deliveryForm, destination: event.target.value })} placeholder="Delivery location" />
                 </label>
                 <label>
+                  Customer name
+                  <input value={deliveryForm.customerName} onChange={(event) => setDeliveryForm({ ...deliveryForm, customerName: event.target.value })} placeholder="Optional" />
+                </label>
+                <label>
+                  Customer email for updates
+                  <input type="email" required value={deliveryForm.customerEmail} onChange={(event) => setDeliveryForm({ ...deliveryForm, customerEmail: event.target.value })} placeholder="customer@example.com" />
+                </label>
+                <label>
                   Vehicle
                   <select required value={deliveryForm.vehicleId} onChange={(event) => setDeliveryForm({ ...deliveryForm, vehicleId: event.target.value, driverId: "" })}>
                     <option value="">Select an available vehicle</option>
@@ -423,6 +496,23 @@ function Deliveries() {
                     {savingDelivery ? "Saving…" : "Save delivery"}
                   </button>
                 </div>
+              </form>
+            )}
+          </section>
+        </div>
+      )}
+
+      {assignmentTrip && (
+        <div className="delivery-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setAssignmentTrip(null)}>
+          <section className="delivery-modal" role="dialog" aria-modal="true" aria-labelledby="assignment-title">
+            <div className="delivery-modal-header"><div><p className="delivery-eyebrow">Delivery setup</p><h2 id="assignment-title">Resources and customer</h2></div><button type="button" className="delivery-modal-close" onClick={() => setAssignmentTrip(null)} aria-label="Close">×</button></div>
+            {loadingResources ? <p className="delivery-form-note">Loading available vehicles and drivers…</p> : (
+              <form className="delivery-form" onSubmit={saveAssignment}>
+                <label>Vehicle<select required={!assignmentTrip.vehicleId?._id || assignmentTrip.vehicleId?.vehicleNumber === "Vehicle record unavailable"} value={assignmentForm.vehicleId} onChange={(event) => setAssignmentForm({ ...assignmentForm, vehicleId: event.target.value, driverId: "" })}><option value="">Choose available vehicle</option>{vehicles.filter((vehicle) => vehicle.status === "Available" || vehicle._id === assignmentForm.vehicleId).map((vehicle) => <option key={vehicle._id} value={vehicle._id}>{vehicle.vehicleNumber} · {vehicle.vehicleType}</option>)}</select></label>
+                <label>Driver<select required={!assignmentTrip.driverId?._id || assignmentTrip.driverId?.name === "Driver record unavailable"} disabled={!assignmentForm.vehicleId} value={assignmentForm.driverId} onChange={(event) => setAssignmentForm({ ...assignmentForm, driverId: event.target.value })}><option value="">Choose available driver</option>{drivers.filter((driver) => driver.status === "Available" || driver._id === assignmentForm.driverId || (driver.status === "Assigned" && String(driver.assignedVehicle?._id || driver.assignedVehicle) === assignmentForm.vehicleId)).map((driver) => <option key={driver._id} value={driver._id}>{driver.name} · {driver.phone}</option>)}</select></label>
+                <label>Customer name<input value={assignmentForm.customerName} onChange={(event) => setAssignmentForm({ ...assignmentForm, customerName: event.target.value })} /></label>
+                <label>Customer email for portal updates<input type="email" value={assignmentForm.customerEmail} onChange={(event) => setAssignmentForm({ ...assignmentForm, customerEmail: event.target.value })} placeholder="customer@example.com" /></label>
+                <div className="delivery-form-actions"><button type="button" className="delivery-form-cancel" onClick={() => setAssignmentTrip(null)}>Cancel</button><button type="submit" className="delivery-add-button" disabled={savingAssignment || loadingResources}>{savingAssignment ? "Assigning…" : "Save assignment"}</button></div>
               </form>
             )}
           </section>
@@ -626,11 +716,11 @@ function Deliveries() {
                       <td className="px-5 py-4">
 
                         <div className="font-medium text-gray-800">
-                          {trip.vehicleId?.vehicleNumber || "-"}
+                          {trip.vehicleId?.vehicleNumber || "Vehicle details unavailable"}
                         </div>
 
                         <div className="text-sm text-gray-500">
-                          {trip.vehicleId?.vehicleType || "-"}
+                          {trip.vehicleId?.vehicleType || ""}
                         </div>
 
                       </td>
@@ -641,11 +731,11 @@ function Deliveries() {
                       <td className="px-5 py-4">
 
                         <div className="font-medium text-gray-800">
-                          {trip.driverId?.name || "-"}
+                          {trip.driverId?.name || "Driver details unavailable"}
                         </div>
 
                         <div className="text-sm text-gray-500">
-                          {trip.driverId?.phone || "-"}
+                          {trip.driverId?.phone || ""}
                         </div>
 
                       </td>
@@ -662,6 +752,15 @@ function Deliveries() {
                         <div className="text-sm text-gray-500 mt-1">
                           → {trip.destination || "-"}
                         </div>
+                        {user.role === "customer" && (trip.currentLocation || Number.isFinite(trip.currentLatitude)) && (
+                          <div className="small text-success mt-2">
+                            <i className="bi bi-geo-alt-fill me-1"></i>
+                            {trip.currentLocation || `${trip.currentLatitude}, ${trip.currentLongitude}`}
+                          </div>
+                        )}
+                        {isManager && trip.customerEmail && (
+                          <div className="small text-muted mt-2">Customer: {trip.customerName || trip.customerEmail}</div>
+                        )}
 
                       </td>
 
@@ -728,7 +827,10 @@ function Deliveries() {
                         <div className="delivery-actions">
 
                           {/* START */}
-                          {trip.status === "Scheduled" && (
+                          {isManager && trip.status === "Scheduled" && (!trip.vehicleId?._id || !trip.driverId?._id || trip.vehicleId?.vehicleNumber === "Vehicle record unavailable" || trip.driverId?.name === "Driver record unavailable" || !trip.customerEmail) && (
+                            <button onClick={() => openAssignmentForm(trip)} className="delivery-action-button delivery-action-start">{trip.customerEmail ? "Assign" : "Link customer"}</button>
+                          )}
+                          {isDriver && trip.status === "Scheduled" && (
                             <button
                               onClick={() =>
                                 updateStatus(
@@ -743,7 +845,7 @@ function Deliveries() {
                           )}
 
                           {/* COMPLETE */}
-                          {trip.status === "In Progress" && (
+                          {isDriver && trip.status === "In Progress" && (
                             <button
                               onClick={() =>
                                 updateStatus(
@@ -758,7 +860,7 @@ function Deliveries() {
                           )}
 
                           {/* CANCEL */}
-                          {trip.status !== "Completed" &&
+                          {isManager && trip.status !== "Completed" &&
                             trip.status !== "Cancelled" && (
                               <button
                                 onClick={() =>

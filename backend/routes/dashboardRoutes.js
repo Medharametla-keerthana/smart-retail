@@ -8,11 +8,12 @@ const {
 } = require("../controllers/dashboardController");
 
 const protect = require("../middleware/authMiddleware");
+const { authorize } = require("../middleware/authMiddleware");
 
 // Dashboard Summary
-router.get("/summary", protect, getDashboardSummary);
+router.get("/summary", protect, authorize("fleetManager"), getDashboardSummary);
 
 // Dashboard Analytics
-router.get("/analytics", protect, getDashboardAnalytics);
+router.get("/analytics", protect, authorize("fleetManager"), getDashboardAnalytics);
 
 module.exports = router;

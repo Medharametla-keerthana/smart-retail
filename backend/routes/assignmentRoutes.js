@@ -9,23 +9,24 @@ const {
 } = require("../controllers/assignmentController");
 
 const protect = require("../middleware/authMiddleware");
+const { authorize } = require("../middleware/authMiddleware");
 
 // ==========================================
 // ASSIGN DRIVER TO VEHICLE
 // ==========================================
 
-router.put("/assign", protect, assignDriverToVehicle);
+router.put("/assign", protect, authorize("fleetManager"), assignDriverToVehicle);
 
 // ==========================================
 // REMOVE DRIVER FROM VEHICLE
 // ==========================================
 
-router.put("/remove", protect, removeDriverAssignment);
+router.put("/remove", protect, authorize("fleetManager"), removeDriverAssignment);
 
 // ==========================================
 // GET ASSIGNMENT DETAILS
 // ==========================================
 
-router.get("/:vehicleId", protect, getAssignmentDetails);
+router.get("/:vehicleId", protect, authorize("fleetManager"), getAssignmentDetails);
 
 module.exports = router;

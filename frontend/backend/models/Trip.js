@@ -26,6 +26,12 @@ const tripSchema = new mongoose.Schema(
       trim: true,
     },
 
+    customerName: { type: String, trim: true, default: "" },
+    customerEmail: { type: String, trim: true, lowercase: true, default: "", index: true },
+    currentLatitude: { type: Number, default: null },
+    currentLongitude: { type: Number, default: null },
+    currentLocation: { type: String, default: "" },
+
     cargoDetails: {
       type: String,
       default: "Not Specified",

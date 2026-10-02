@@ -1,441 +1,61 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 function Notifications() {
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "Delivery Delay",
-      message:
-        "Delivery DL-104 is delayed due to heavy traffic near Chennai.",
-      type: "warning",
-      category: "Delivery",
-      time: "10 minutes ago",
-      read: false,
-    },
-    {
-      id: 2,
-      title: "Maintenance Due",
-      message:
-        "Vehicle VH-002 requires scheduled engine inspection.",
-      type: "maintenance",
-      category: "Maintenance",
-      time: "1 hour ago",
-      read: false,
-    },
-    {
-      id: 3,
-      title: "Route Deviation",
-      message:
-        "Vehicle VH-001 has deviated from its assigned delivery route.",
-      type: "danger",
-      category: "Tracking",
-      time: "2 hours ago",
-      read: true,
-    },
-    {
-      id: 4,
-      title: "Driver Available",
-      message:
-        "Driver Amit Sharma is now available for a new assignment.",
-      type: "info",
-      category: "Driver",
-      time: "3 hours ago",
-      read: true,
-    },
-    {
-      id: 5,
-      title: "Vehicle Breakdown",
-      message:
-        "Vehicle VH-004 reported a technical issue and requires attention.",
-      type: "danger",
-      category: "Vehicle",
-      time: "5 hours ago",
-      read: false,
-    },
-    {
-      id: 6,
-      title: "System Update",
-      message:
-        "Fleet monitoring system data was successfully synchronized.",
-      type: "info",
-      category: "System",
-      time: "Yesterday",
-      read: true,
-    },
-  ]);
-
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [filter, setFilter] = useState("All");
 
-  const filteredNotifications = notifications.filter(
-    (notification) => {
-      if (filter === "All") return true;
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/notifications", { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Could not load notifications");
+      setItems(data.notifications || []);
+    } catch (loadError) {
+      setError(loadError.message || "Could not reach notifications API. Check the Vercel function and MongoDB connection.");
+    } finally { setLoading(false); }
+  }, []);
 
-      if (filter === "Unread") {
-        return notification.read === false;
-      }
+  useEffect(() => { load(); }, [load]);
 
-      return notification.category === filter;
-    }
-  );
+  const markRead = async (item) => {
+    try {
+      const response = await fetch(`/api/notifications/${item._id}/read`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Could not update notification");
+      setItems((current) => current.map((notification) => notification._id === item._id ? data.notification : notification));
+    } catch (readError) { setError(readError.message || "Could not update notification"); }
+  };
 
-  const unreadCount = notifications.filter(
-    (notification) => !notification.read
-  ).length;
-
-  function markAsRead(id) {
-    setNotifications(
-      notifications.map((notification) =>
-        notification.id === id
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
-  }
-
-  function markAllAsRead() {
-    setNotifications(
-      notifications.map((notification) => ({
-        ...notification,
-        read: true,
-      }))
-    );
-  }
-
-  function deleteNotification(id) {
-    setNotifications(
-      notifications.filter(
-        (notification) => notification.id !== id
-      )
-    );
-  }
-
-  function getIcon(type) {
-    if (type === "warning") {
-      return "bi-exclamation-triangle-fill text-warning";
-    }
-
-    if (type === "danger") {
-      return "bi-x-circle-fill text-danger";
-    }
-
-    if (type === "maintenance") {
-      return "bi-tools text-primary";
-    }
-
-    return "bi-info-circle-fill text-info";
-  }
+  const visibleItems = items.filter((item) => filter === "All" || (filter === "Unread" ? !item.readAt : item.category === filter));
+  const unreadCount = items.filter((item) => !item.readAt).length;
 
   return (
-    <>
-      {/* PAGE HEADER */}
-
-      <div className="d-flex justify-content-between align-items-center mb-4">
-
-        <div>
-          <h1 className="fw-bold mb-1">
-            Notifications & Alerts
-          </h1>
-
-          <p className="text-muted mb-0">
-            Monitor important fleet and operational updates.
-          </p>
-        </div>
-
-        <button
-          className="btn btn-outline-primary"
-          onClick={markAllAsRead}
-        >
-          <i className="bi bi-check2-all me-2"></i>
-          Mark All as Read
-        </button>
-
+    <section className="container-fluid py-3 py-lg-4">
+      <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+        <div><p className="text-success fw-semibold text-uppercase small mb-1">Delivery updates</p><h1 className="fw-bold mb-1">Notifications</h1><p className="text-secondary mb-0">Status changes and incident reports linked to your account.</p></div>
+        <div className="d-flex gap-2"><select className="form-select" value={filter} onChange={(event) => setFilter(event.target.value)} aria-label="Filter notifications"><option>All</option><option>Unread</option><option>Delivery</option><option>Incident</option></select><button className="btn btn-outline-success" onClick={load} disabled={loading}>Refresh</button></div>
       </div>
-
-
-      {/* NOTIFICATION STATISTICS */}
-
-      <div className="row g-4 mb-4">
-
-        <div className="col-md-4">
-
-          <div className="card border-0 shadow-sm">
-
-            <div className="card-body">
-
-              <div className="d-flex justify-content-between">
-
-                <div>
-                  <p className="text-muted mb-1">
-                    Total Notifications
-                  </p>
-
-                  <h3 className="fw-bold mb-0">
-                    {notifications.length}
-                  </h3>
-                </div>
-
-                <i className="bi bi-bell fs-2 text-primary"></i>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <div className="col-md-4">
-
-          <div className="card border-0 shadow-sm">
-
-            <div className="card-body">
-
-              <div className="d-flex justify-content-between">
-
-                <div>
-                  <p className="text-muted mb-1">
-                    Unread Alerts
-                  </p>
-
-                  <h3 className="fw-bold text-danger mb-0">
-                    {unreadCount}
-                  </h3>
-                </div>
-
-                <i className="bi bi-bell-fill fs-2 text-danger"></i>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <div className="col-md-4">
-
-          <div className="card border-0 shadow-sm">
-
-            <div className="card-body">
-
-              <div className="d-flex justify-content-between">
-
-                <div>
-                  <p className="text-muted mb-1">
-                    Read Notifications
-                  </p>
-
-                  <h3 className="fw-bold text-success mb-0">
-                    {notifications.length - unreadCount}
-                  </h3>
-                </div>
-
-                <i className="bi bi-check-circle fs-2 text-success"></i>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
+      {error && <div className="alert alert-danger">{error}</div>}
+      <div className="row g-3 mb-4">
+        <div className="col-6 col-md-4"><div className="card border-0 shadow-sm rounded-4"><div className="card-body"><span className="text-secondary small">Total updates</span><div className="fs-2 fw-bold">{items.length}</div></div></div></div>
+        <div className="col-6 col-md-4"><div className="card border-0 shadow-sm rounded-4"><div className="card-body"><span className="text-secondary small">Unread</span><div className="fs-2 fw-bold text-success">{unreadCount}</div></div></div></div>
+        <div className="col-6 col-md-4"><div className="card border-0 shadow-sm rounded-4"><div className="card-body"><span className="text-secondary small">Incidents</span><div className="fs-2 fw-bold text-warning">{items.filter((item) => item.category === "Incident").length}</div></div></div></div>
       </div>
-
-
-      {/* FILTER */}
-
-      <div className="card border-0 shadow-sm mb-4">
-
-        <div className="card-body">
-
-          <div className="row align-items-center">
-
-            <div className="col-md-4">
-
-              <label className="form-label fw-semibold">
-                Filter Notifications
-              </label>
-
-              <select
-                className="form-select"
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-              >
-
-                <option value="All">
-                  All Notifications
-                </option>
-
-                <option value="Unread">
-                  Unread
-                </option>
-
-                <option value="Delivery">
-                  Delivery
-                </option>
-
-                <option value="Maintenance">
-                  Maintenance
-                </option>
-
-                <option value="Tracking">
-                  Tracking
-                </option>
-
-                <option value="Driver">
-                  Driver
-                </option>
-
-                <option value="Vehicle">
-                  Vehicle
-                </option>
-
-                <option value="System">
-                  System
-                </option>
-
-              </select>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-
-      {/* NOTIFICATION LIST */}
-
-      <div className="card border-0 shadow-sm">
-
-        <div className="card-body">
-
-          <h5 className="fw-bold mb-4">
-            Recent Notifications
-          </h5>
-
-
-          {filteredNotifications.length === 0 ? (
-
-            <div className="text-center py-5">
-
-              <i className="bi bi-bell-slash fs-1 text-muted"></i>
-
-              <h5 className="mt-3">
-                No Notifications Found
-              </h5>
-
-              <p className="text-muted">
-                There are no notifications matching this filter.
-              </p>
-
-            </div>
-
-          ) : (
-
-            <div>
-
-              {filteredNotifications.map((notification) => (
-
-                <div
-                  key={notification.id}
-                  className={`notification-item ${
-                    !notification.read
-                      ? "notification-unread"
-                      : ""
-                  }`}
-                >
-
-                  <div className="notification-icon">
-
-                    <i
-                      className={`bi ${getIcon(
-                        notification.type
-                      )}`}
-                    ></i>
-
-                  </div>
-
-
-                  <div className="notification-content">
-
-                    <div className="d-flex justify-content-between">
-
-                      <h6 className="fw-bold mb-1">
-                        {notification.title}
-                      </h6>
-
-                      <small className="text-muted">
-                        {notification.time}
-                      </small>
-
-                    </div>
-
-
-                    <p className="text-muted mb-2">
-                      {notification.message}
-                    </p>
-
-
-                    <span className="badge bg-light text-dark">
-
-                      {notification.category}
-
-                    </span>
-
-                  </div>
-
-
-                  <div className="notification-actions">
-
-                    {!notification.read && (
-
-                      <button
-                        className="btn btn-sm btn-outline-success"
-                        onClick={() =>
-                          markAsRead(notification.id)
-                        }
-                        title="Mark as Read"
-                      >
-
-                        <i className="bi bi-check-lg"></i>
-
-                      </button>
-
-                    )}
-
-
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() =>
-                        deleteNotification(notification.id)
-                      }
-                      title="Delete Notification"
-                    >
-
-                      <i className="bi bi-trash"></i>
-
-                    </button>
-
-                  </div>
-
-                </div>
-
-              ))}
-
-            </div>
-
-          )}
-
-        </div>
-
-      </div>
-
-    </>
+      <div className="card border-0 shadow-sm rounded-4"><div className="card-body p-0">
+        {loading ? <p className="text-center text-secondary py-5 mb-0">Loading notifications…</p> : visibleItems.length === 0 ? <div className="text-center py-5"><i className="bi bi-bell-slash fs-1 text-secondary"></i><h2 className="h5 mt-3">You’re all caught up</h2><p className="text-secondary mb-0">Delivery and safety updates will appear here.</p></div> : (
+          <div className="list-group list-group-flush rounded-4">{visibleItems.map((item) => <article className={`list-group-item p-4 ${item.readAt ? "" : "bg-success-subtle"}`} key={item._id}>
+            <div className="d-flex gap-3"><span className={`fs-4 ${item.category === "Incident" ? "text-warning" : "text-success"}`}><i className={`bi ${item.category === "Incident" ? "bi-exclamation-triangle-fill" : "bi-box-seam"}`}></i></span><div className="flex-grow-1"><div className="d-flex flex-wrap justify-content-between gap-2"><h2 className="h6 fw-bold mb-1">{item.title}</h2><time className="small text-secondary">{new Date(item.createdAt).toLocaleString()}</time></div><p className="text-secondary mb-2">{item.message}</p><span className="badge text-bg-light">{item.category}</span></div>{!item.readAt && <button className="btn btn-sm btn-outline-success align-self-start" onClick={() => markRead(item)}>Mark read</button>}</div>
+          </article>)}</div>
+        )}
+      </div></div>
+    </section>
   );
 }
 

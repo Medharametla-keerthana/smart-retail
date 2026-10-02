@@ -1,5 +1,6 @@
 const Vehicle = require("../models/Vehicle");
 const Driver = require("../models/Driver");
+const Trip = require("../models/Trip");
 
 // ==========================================
 // 1. ASSIGN DRIVER TO VEHICLE
@@ -37,6 +38,12 @@ const assignDriverToVehicle = async (req, res) => {
       });
     }
 
+    if (vehicle.status !== "Available" || driver.status !== "Available") {
+      return res.status(400).json({ success: false, message: "Only an available vehicle and driver can be assigned" });
+    }
+    const activeTrip = await Trip.findOne({ status: { $in: ["Scheduled", "In Progress"] }, $or: [{ vehicleId }, { driverId }] });
+    if (activeTrip) return res.status(400).json({ success: false, message: "The vehicle or driver already has an active delivery" });
+
     // Check if vehicle already has a driver
     if (vehicle.driverId) {
       return res.status(400).json({
@@ -64,6 +71,7 @@ const assignDriverToVehicle = async (req, res) => {
 
     // Update driver status
     driver.status = "Assigned";
+    driver.assignedVehicle = vehicleId;
 
     await driver.save();
 
@@ -120,6 +128,9 @@ const removeDriverAssignment = async (req, res) => {
       });
     }
 
+    const activeTrip = await Trip.findOne({ status: { $in: ["Scheduled", "In Progress"] }, $or: [{ vehicleId }, { driverId: vehicle.driverId }] });
+    if (activeTrip) return res.status(400).json({ success: false, message: "Cannot remove a driver from an active delivery" });
+
     // Store driver ID before removing
     const driverId = vehicle.driverId;
 
@@ -133,6 +144,7 @@ const removeDriverAssignment = async (req, res) => {
 
     if (driver) {
       driver.status = "Available";
+      driver.assignedVehicle = null;
       await driver.save();
     }
 

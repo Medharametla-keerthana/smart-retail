@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const Driver = require("../models/Driver");
 
 const protect = async (req, res, next) => {
   try {
@@ -25,6 +26,13 @@ const protect = async (req, res, next) => {
       });
     }
 
+    if (user.role === "driver") {
+      req.driver = await Driver.findOne({ email: user.email });
+      if (!req.driver) {
+        return res.status(403).json({ success: false, message: "No driver record is linked to this account" });
+      }
+    }
+
     req.user = user;
 
     next();
@@ -36,4 +44,12 @@ const protect = async (req, res, next) => {
   }
 };
 
+const authorize = (...roles) => (req, res, next) => {
+  if (!req.user || !roles.includes(req.user.role)) {
+    return res.status(403).json({ success: false, message: "You do not have permission to perform this action" });
+  }
+  return next();
+};
+
 module.exports = protect;
+module.exports.authorize = authorize;

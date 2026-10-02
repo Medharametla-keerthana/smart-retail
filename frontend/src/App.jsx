@@ -14,12 +14,26 @@ import Analytics from "./pages/Analytics";
 import Reports from "./pages/Reports";
 import Profile from "./pages/Profile";
 import Incidents from "./pages/Incidents";
+import RoleHome from "./pages/RoleHome";
 
-function ProtectedRoute({ children }) {
+function currentUser() {
+  try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
+}
+
+function homeForRole(role) {
+  return role === "fleetManager" ? "/dashboard" : "/deliveries";
+}
+
+function ProtectedRoute({ children, roles }) {
   const location = useLocation();
+  const user = currentUser();
 
   if (!localStorage.getItem("token")) {
     return <Navigate to="/" replace state={{ from: location }} />;
+  }
+
+  if (roles && !roles.includes(user?.role || "fleetManager")) {
+    return <Navigate to={homeForRole(user?.role)} replace />;
   }
 
   return <DashboardLayout>{children}</DashboardLayout>;
@@ -27,7 +41,7 @@ function ProtectedRoute({ children }) {
 
 function PublicOnlyRoute({ children }) {
   if (localStorage.getItem("token")) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={homeForRole(currentUser()?.role || "fleetManager")} replace />;
   }
 
   return children;
@@ -57,17 +71,17 @@ function App() {
 
       <Route
         path="/dashboard"
-        element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
+        element={<ProtectedRoute><>{currentUser()?.role === "fleetManager" || !currentUser()?.role ? <Dashboard /> : <RoleHome />}</></ProtectedRoute>}
       />
 
       <Route
         path="/vehicles"
-        element={<ProtectedRoute><Vehicles /></ProtectedRoute>}
+        element={<ProtectedRoute roles={["fleetManager"]}><Vehicles /></ProtectedRoute>}
       />
 
       <Route
         path="/drivers"
-        element={<ProtectedRoute><Drivers /></ProtectedRoute>}
+        element={<ProtectedRoute roles={["fleetManager"]}><Drivers /></ProtectedRoute>}
       />
 
       <Route
@@ -77,12 +91,12 @@ function App() {
 
       <Route
         path="/tracking"
-        element={<ProtectedRoute><Tracking /></ProtectedRoute>}
+        element={<ProtectedRoute roles={["fleetManager", "driver"]}><Tracking /></ProtectedRoute>}
       />
 
       <Route
         path="/maintenance"
-        element={<ProtectedRoute><Maintenance /></ProtectedRoute>}
+        element={<ProtectedRoute roles={["fleetManager"]}><Maintenance /></ProtectedRoute>}
       />
 
       <Route
@@ -92,12 +106,12 @@ function App() {
 
       <Route
         path="/analytics"
-        element={<ProtectedRoute><Analytics /></ProtectedRoute>}
+        element={<ProtectedRoute roles={["fleetManager"]}><Analytics /></ProtectedRoute>}
       />
 
       <Route
         path="/reports"
-        element={<ProtectedRoute><Reports /></ProtectedRoute>}
+        element={<ProtectedRoute roles={["fleetManager"]}><Reports /></ProtectedRoute>}
       />
 
       <Route

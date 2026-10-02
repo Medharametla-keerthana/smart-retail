@@ -1,5 +1,12 @@
 const Location = require("../models/Location");
 const Vehicle = require("../models/Vehicle");
+const Trip = require("../models/Trip");
+
+const canReadVehicle = async (req, vehicleId) => {
+  if (req.user.role === "fleetManager") return true;
+  if (req.user.role === "driver") return String(req.driver?.assignedVehicle) === String(vehicleId);
+  return Boolean(await Trip.exists({ vehicleId, customerEmail: req.user.email.toLowerCase() }));
+};
 
 
 // Update Vehicle Location
@@ -32,6 +39,10 @@ const updateVehicleLocation = async (req, res) => {
       });
     }
 
+    if (req.user.role === "driver" && String(vehicle.driverId) !== String(req.driver?._id)) {
+      return res.status(403).json({ success: false, message: "You can only update your assigned vehicle location" });
+    }
+
     // Save location in location history
     const location = await Location.create({
       vehicleId,
@@ -44,8 +55,16 @@ const updateVehicleLocation = async (req, res) => {
     // Update vehicle current location
     if (locationName) {
       vehicle.currentLocation = locationName;
-      await vehicle.save();
     }
+
+    const activeTrip = await Trip.findOne({ vehicleId, status: { $in: ["Scheduled", "In Progress"] } });
+    if (activeTrip) {
+      activeTrip.currentLatitude = Number(latitude);
+      activeTrip.currentLongitude = Number(longitude);
+      if (locationName) activeTrip.currentLocation = locationName;
+      await activeTrip.save();
+    }
+    await vehicle.save();
 
     res.status(201).json({
       success: true,
@@ -76,6 +95,8 @@ const getCurrentLocation = async (req, res) => {
         message: "Vehicle not found",
       });
     }
+
+    if (!(await canReadVehicle(req, vehicleId))) return res.status(403).json({ success: false, message: "You cannot view this vehicle location" });
 
     // Get latest location
     const location = await Location.findOne({
@@ -120,6 +141,8 @@ const getLocationHistory = async (req, res) => {
         message: "Vehicle not found",
       });
     }
+
+    if (!(await canReadVehicle(req, vehicleId))) return res.status(403).json({ success: false, message: "You cannot view this vehicle location history" });
 
     // Get all location history
     const locations = await Location.find({

@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 
 function Tracking() {
+  let currentUser = {};
+  try { currentUser = JSON.parse(localStorage.getItem("user") || "{}"); } catch { currentUser = {}; }
+  const isDriver = currentUser.role === "driver";
   const [vehicles, setVehicles] = useState([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -610,7 +613,7 @@ function Tracking() {
               VEHICLE LOCATION OVERVIEW
           ========================================== */}
 
-          <form className="card border-0 shadow-sm mb-4" onSubmit={submitLocation}>
+          {isDriver && <form className="card border-0 shadow-sm mb-4" onSubmit={submitLocation}>
             <div className="card-body">
               <h5 className="fw-bold mb-1">Record a vehicle location</h5>
               <p className="text-muted small">Save coordinates and a place name to the vehicle’s location history.</p>
@@ -630,7 +633,7 @@ function Tracking() {
                 <div className="col-12"><button className="btn btn-primary" type="submit" disabled={savingLocation || !vehicles.length}>{savingLocation ? "Saving..." : "Save location"}</button></div>
               </div>
             </div>
-          </form>
+          </form>}
 
           <div className="card border-0 shadow-sm mb-4">
 

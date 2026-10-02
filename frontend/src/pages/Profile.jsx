@@ -64,6 +64,7 @@ function Profile() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Could not update profile");
       setUser(data.user);
+      localStorage.setItem("user", JSON.stringify(data.user));
       setMessage("Profile updated successfully");
     } catch (error) {
       setMessage(error.message || "Unable to update profile");
@@ -94,6 +95,7 @@ function Profile() {
 
   const firstLetter =
     user.name?.charAt(0).toUpperCase() || "U";
+  const roleLabel = { fleetManager: "Fleet Manager", driver: "Driver", customer: "Customer" }[user.role] || "Fleet Manager";
 
   return (
     <div className="profile-page">
@@ -143,6 +145,11 @@ function Profile() {
         <h2>Account Information</h2>
 
         <div className="profile-info-grid">
+
+          <div className="profile-info-item">
+            <span className="profile-label">Role</span>
+            <span className="profile-value">{roleLabel}</span>
+          </div>
 
           <div className="profile-info-item">
             <span className="profile-label">

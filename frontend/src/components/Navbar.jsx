@@ -2,6 +2,9 @@ import { Link, useNavigate } from "react-router-dom";
 
 function Navbar({ toggleSidebar }) {
   const navigate = useNavigate();
+  let user = {};
+  try { user = JSON.parse(localStorage.getItem("user") || "{}"); } catch { user = {}; }
+  const roleLabel = { fleetManager: "Fleet Manager", driver: "Driver", customer: "Customer" }[user.role] || "Fleet Manager";
 
   function handleLogout() {
     localStorage.removeItem("token");
@@ -46,7 +49,7 @@ function Navbar({ toggleSidebar }) {
           className="navbar-profile text-decoration-none fw-semibold"
         >
           <i className="bi bi-person-circle"></i>
-          Fleet Manager
+          {user.name ? `${user.name} · ${roleLabel}` : roleLabel}
         </Link>
 
 

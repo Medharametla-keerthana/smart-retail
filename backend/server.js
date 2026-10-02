@@ -14,6 +14,8 @@ const assignmentRoutes = require("./routes/assignmentRoutes");
 const tripRoutes = require("./routes/tripRoutes");
 const locationRoutes = require("./routes/locationRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
+const incidentRoutes = require("./routes/incidentRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 // ===============================
 // CREATE EXPRESS APP
 // ===============================
@@ -57,6 +59,8 @@ app.use("/api/assignments", assignmentRoutes);
 app.use("/api/trips", tripRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/incidents", incidentRoutes);
+app.use("/api/notifications", notificationRoutes);
 // ===============================
 // 404 ROUTE
 // ===============================
