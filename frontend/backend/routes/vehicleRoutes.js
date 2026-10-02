@@ -35,6 +35,7 @@ router.post("/", protect, authorize("fleetManager"), createVehicle);
 router.get("/search", protect, authorize("fleetManager"), searchVehicles);
 router.get("/maintenance", protect, authorize("fleetManager"), getMaintenance);
 router.post("/maintenance", protect, authorize("fleetManager"), scheduleMaintenance);
+router.put("/maintenance", protect, authorize("fleetManager"), updateMaintenance);
 router.put("/maintenance/:id", protect, authorize("fleetManager"), updateMaintenance);
 
 // Get All Vehicles

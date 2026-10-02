@@ -80,23 +80,32 @@ function Maintenance() {
     event.preventDefault(); setSaving(true); setError(""); setNotice("");
     try {
       const response = await fetch(API_URL, { method: "POST", headers: { ...authHeaders(), "Content-Type": "application/json" }, body: JSON.stringify(form) });
-      await readApiResponse(response, "Maintenance API");
+      const data = await readApiResponse(response, "Maintenance API");
+      if (data.record) {
+        setRecords((current) => [data.record, ...current.filter((record) => record._id !== data.record._id)]);
+        setVehicles((current) => current.map((vehicle) => vehicle._id === form.vehicleId ? { ...vehicle, status: "Maintenance" } : vehicle));
+      }
       setNotice("Maintenance has been scheduled and the vehicle is marked under maintenance.");
-      setForm(blankForm()); setShowForm(false); await load();
+      setForm(blankForm()); setShowForm(false);
     } catch (saveError) { setError(saveError.message || "Could not schedule maintenance"); }
     finally { setSaving(false); }
   };
 
   const saveUpdate = async (event) => {
     event.preventDefault(); if (!editing) return;
-    setSaving(true); setError("");
+    setSaving(true); setError(""); setNotice("");
     try {
-      const response = await fetch(`${API_URL}/${editing._id}`, {
+      const response = await fetch(API_URL, {
         method: "PUT", headers: { ...authHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ status: editing.status, priority: editing.priority, mechanic: editing.mechanic, workshop: editing.workshop, notes: editing.notes, partsCost: editing.partsCost, labourCost: editing.labourCost, estimatedCompletionDate: editing.estimatedCompletionDate }),
+        body: JSON.stringify({ maintenanceId: editing._id, status: editing.status, priority: editing.priority, mechanic: editing.mechanic, workshop: editing.workshop, notes: editing.notes, partsCost: editing.partsCost, labourCost: editing.labourCost, estimatedCompletionDate: editing.estimatedCompletionDate }),
       });
-      await readApiResponse(response, "Maintenance API");
-      setNotice("Maintenance record updated."); setEditing(null); await load();
+      const data = await readApiResponse(response, "Maintenance API");
+      if (data.record) {
+        setRecords((current) => current.map((record) => record._id === data.record._id ? data.record : record));
+        const vehicle = data.record.vehicleId;
+        if (vehicle?._id) setVehicles((current) => current.map((item) => item._id === vehicle._id ? { ...item, status: vehicle.status } : item));
+      }
+      setNotice("Maintenance record updated."); setEditing(null);
     } catch (saveError) { setError(saveError.message || "Could not update maintenance"); }
     finally { setSaving(false); }
   };
@@ -158,14 +167,14 @@ function Maintenance() {
             <div className="maintenance-workflow" aria-label={`Workflow: ${record.status}`}>{WORKFLOW.map((stage, index) => <span className={`workflow-step ${step >= index ? "is-active" : ""}`} key={stage}><i />{stage}</span>)}</div>
             <div className="maintenance-record-details"><span><b>Scheduled</b>{dateLabel(record.scheduledDate)}</span><span><b>Expected finish</b>{dateLabel(record.estimatedCompletionDate)}</span><span><b>Mechanic / workshop</b>{[record.mechanic, record.workshop].filter(Boolean).join(" · ") || "Not assigned"}</span><span><b>Cost to date</b>{money(Number(record.partsCost || 0) + Number(record.labourCost || 0))}</span></div>
             {record.notes && <p className="maintenance-notes">{record.notes}</p>}
-            {!isClosed && <button className="btn btn-sm btn-outline-success" onClick={() => setEditing({ ...record, estimatedCompletionDate: String(record.estimatedCompletionDate || "").slice(0, 10) })}>Update workflow / costs</button>}
+            {!isClosed && <button className="btn btn-sm btn-outline-success" onClick={() => setEditing({ ...record, partsCost: record.partsCost || "", labourCost: record.labourCost || "", estimatedCompletionDate: String(record.estimatedCompletionDate || "").slice(0, 10) })}>Update workflow / costs</button>}
           </article>;
         })}</div>}
       </section>
 
       {editing && <div className="maintenance-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setEditing(null); }}><section className="maintenance-modal" role="dialog" aria-modal="true" aria-labelledby="maintenance-edit-title"><form onSubmit={saveUpdate}>
         <div className="d-flex justify-content-between align-items-start mb-3"><div><h2 id="maintenance-edit-title">Update maintenance</h2><p className="text-secondary mb-0">{records.find((item) => item._id === editing._id)?.vehicleId?.vehicleNumber} · {editing.type}</p></div><button type="button" className="btn-close" aria-label="Close" onClick={() => setEditing(null)} /></div>
-        <div className="row g-3"><div className="col-12"><label className="form-label">Workflow status</label><select className="form-select" value={editing.status} onChange={(event) => setEditing({ ...editing, status: event.target.value })}>{[...WORKFLOW, "Cancelled"].map((status) => <option key={status}>{status}</option>)}</select></div><div className="col-12 col-sm-6"><label className="form-label">Priority</label><select className="form-select" value={editing.priority} onChange={(event) => setEditing({ ...editing, priority: event.target.value })}>{["Low", "Medium", "High", "Critical"].map((priority) => <option key={priority}>{priority}</option>)}</select></div><div className="col-12 col-sm-6"><label className="form-label">Estimated completion</label><input className="form-control" type="date" min={String(editing.scheduledDate).slice(0, 10)} value={editing.estimatedCompletionDate || ""} onChange={(event) => setEditing({ ...editing, estimatedCompletionDate: event.target.value })} required /></div><div className="col-12 col-sm-6"><label className="form-label">Parts cost (₹)</label><input className="form-control" type="number" min="0" step="0.01" value={editing.partsCost || 0} onChange={(event) => setEditing({ ...editing, partsCost: event.target.value })} /></div><div className="col-12 col-sm-6"><label className="form-label">Labour cost (₹)</label><input className="form-control" type="number" min="0" step="0.01" value={editing.labourCost || 0} onChange={(event) => setEditing({ ...editing, labourCost: event.target.value })} /></div><div className="col-12"><label className="form-label">Mechanic</label><input className="form-control" maxLength="120" value={editing.mechanic || ""} onChange={(event) => setEditing({ ...editing, mechanic: event.target.value })} /></div><div className="col-12"><label className="form-label">Workshop</label><input className="form-control" maxLength="160" value={editing.workshop || ""} onChange={(event) => setEditing({ ...editing, workshop: event.target.value })} /></div><div className="col-12"><label className="form-label">Notes</label><textarea className="form-control" rows="3" maxLength="2000" value={editing.notes || ""} onChange={(event) => setEditing({ ...editing, notes: event.target.value })} /></div></div>
+        <div className="row g-3"><div className="col-12"><label className="form-label">Workflow status</label><select className="form-select" value={editing.status} onChange={(event) => setEditing({ ...editing, status: event.target.value })}>{[...WORKFLOW, "Cancelled"].map((status) => <option key={status}>{status}</option>)}</select></div><div className="col-12 col-sm-6"><label className="form-label">Priority</label><select className="form-select" value={editing.priority} onChange={(event) => setEditing({ ...editing, priority: event.target.value })}>{["Low", "Medium", "High", "Critical"].map((priority) => <option key={priority}>{priority}</option>)}</select></div><div className="col-12 col-sm-6"><label className="form-label">Estimated completion</label><input className="form-control" type="date" min={String(editing.scheduledDate).slice(0, 10)} value={editing.estimatedCompletionDate || ""} onChange={(event) => setEditing({ ...editing, estimatedCompletionDate: event.target.value })} required /></div><div className="col-12 col-sm-6"><label className="form-label">Parts cost (₹)</label><input className="form-control" type="number" min="0" step="0.01" value={editing.partsCost ?? ""} placeholder="e.g. 2500" onChange={(event) => setEditing({ ...editing, partsCost: event.target.value })} /></div><div className="col-12 col-sm-6"><label className="form-label">Labour cost (₹)</label><input className="form-control" type="number" min="0" step="0.01" value={editing.labourCost ?? ""} placeholder="e.g. 800" onChange={(event) => setEditing({ ...editing, labourCost: event.target.value })} /></div><div className="col-12"><label className="form-label">Mechanic</label><input className="form-control" maxLength="120" value={editing.mechanic || ""} onChange={(event) => setEditing({ ...editing, mechanic: event.target.value })} /></div><div className="col-12"><label className="form-label">Workshop</label><input className="form-control" maxLength="160" value={editing.workshop || ""} onChange={(event) => setEditing({ ...editing, workshop: event.target.value })} /></div><div className="col-12"><label className="form-label">Notes</label><textarea className="form-control" rows="3" maxLength="2000" value={editing.notes || ""} onChange={(event) => setEditing({ ...editing, notes: event.target.value })} /></div></div>
         <div className="d-flex justify-content-end gap-2 mt-4"><button type="button" className="btn btn-light" onClick={() => setEditing(null)}>Cancel</button><button type="submit" className="btn btn-success" disabled={saving}>{saving ? "Saving…" : "Save updates"}</button></div>
       </form></section></div>}
     </main>

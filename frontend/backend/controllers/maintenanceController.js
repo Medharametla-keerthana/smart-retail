@@ -48,7 +48,9 @@ const scheduleMaintenance = async (req, res) => {
 
 const updateMaintenance = async (req, res) => {
   try {
-    const record = await Maintenance.findById(req.params.id);
+    const maintenanceId = req.params.id || req.body.maintenanceId;
+    if (!maintenanceId) return res.status(400).json({ success: false, message: "Maintenance record ID is required" });
+    const record = await Maintenance.findById(maintenanceId);
     if (!record) return res.status(404).json({ success: false, message: "Maintenance record not found" });
     if (["Completed", "Cancelled"].includes(record.status)) {
       return res.status(409).json({ success: false, message: "Completed or cancelled maintenance records cannot be changed" });
