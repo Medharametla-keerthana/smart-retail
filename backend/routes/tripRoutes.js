@@ -32,6 +32,7 @@ router.get("/search", protect, searchTrips);
 router.get("/", protect, getAllTrips);
 
 // Update Trip Status
+router.put("/status", protect, authorize("fleetManager", "driver"), updateTripStatus);
 router.put("/:id/status", protect, authorize("fleetManager", "driver"), updateTripStatus);
 
 // Cancel Trip

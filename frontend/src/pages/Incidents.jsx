@@ -6,7 +6,7 @@ function Incidents() {
   let user = {};
   try { user = JSON.parse(localStorage.getItem("user") || "{}"); } catch { user = {}; }
   const isDriver = user.role === "driver";
-  const isManager = !user.role || user.role === "fleetManager";
+  const isManager = !user.role || ["fleetManager", "admin"].includes(user.role);
   const [incidents, setIncidents] = useState([]);
   const [trips, setTrips] = useState([]);
   const [form, setForm] = useState({ tripId: "", title: "", severity: "Medium", description: "" });
@@ -14,6 +14,20 @@ function Incidents() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [incidentGps, setIncidentGps] = useState(null);
+  const [alternateRouteUrl, setAlternateRouteUrl] = useState("");
+  const [gpsMessage, setGpsMessage] = useState("");
+
+  const captureIncidentGps = () => {
+    if (!navigator.geolocation) { setGpsMessage("This browser does not support device GPS."); return; }
+    setGpsMessage("Waiting for device location permission...");
+    navigator.geolocation.getCurrentPosition((position) => {
+      setIncidentGps({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+      setGpsMessage(`Incident location captured (${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}).`);
+    }, (geoError) => {
+      setGpsMessage(geoError.code === 1 ? "Location permission was denied. Allow location access in browser settings." : "Could not read device GPS. You can still report the incident without coordinates.");
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,12 +61,14 @@ function Incidents() {
       const response = await fetch("/api/incidents", {
         method: "POST",
         headers: { ...tokenHeader(), "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, ...(incidentGps || {}), locationName: incidentGps ? `GPS ${incidentGps.latitude.toFixed(5)}, ${incidentGps.longitude.toFixed(5)}` : "" }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || "Could not report incident");
       setForm({ tripId: "", title: "", severity: "Medium", description: "" });
       setNotice("Incident sent to the fleet manager and linked customer.");
+      setAlternateRouteUrl(data.alternateRouteUrl || "");
+      setIncidentGps(null);
       await load();
     } catch (reportError) {
       setError(reportError.message || "Could not report incident");
@@ -79,6 +95,7 @@ function Incidents() {
 
       {error && <div className="alert alert-danger">{error}</div>}
       {notice && <div className="alert alert-success">{notice}</div>}
+      {alternateRouteUrl && <div className="alert alert-info d-flex flex-wrap align-items-center justify-content-between gap-2"><span>GPS location saved. A route from the incident location to the delivery destination is ready.</span><a className="btn btn-sm btn-primary" href={alternateRouteUrl} target="_blank" rel="noreferrer">Open route in Google Maps</a></div>}
 
       {isDriver && <form className="card border-0 shadow-sm rounded-4 mb-4" onSubmit={report}><div className="card-body p-4">
         <h2 className="h5 fw-bold mb-3">Report an incident</h2>
@@ -87,6 +104,7 @@ function Incidents() {
           <div className="col-12 col-lg-4"><label className="form-label">Incident title</label><input className="form-control" required maxLength="120" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Vehicle issue, road closure…" /></div>
           <div className="col-12 col-lg-2"><label className="form-label">Severity</label><select className="form-select" value={form.severity} onChange={(event) => setForm({ ...form, severity: event.target.value })}><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select></div>
           <div className="col-12"><label className="form-label">What happened?</label><textarea className="form-control" rows="3" required maxLength="2000" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} placeholder="Describe the location and help needed." /></div>
+          <div className="col-12 d-flex flex-wrap align-items-center gap-2"><button className="btn btn-outline-success" type="button" onClick={captureIncidentGps}><i className="bi bi-crosshair me-2"></i>Capture incident GPS</button><span className="small text-secondary">{gpsMessage || "Capture GPS to include a route from the incident location."}</span></div>
           <div className="col-12"><button className="btn btn-success px-4" disabled={saving || !trips.length}>{saving ? "Sending…" : "Send incident report"}</button></div>
         </div>
       </div></form>}
@@ -99,9 +117,10 @@ function Incidents() {
 
       <div className="card border-0 shadow-sm rounded-4"><div className="card-body p-0">
         {loading ? <p className="text-center text-secondary py-5 mb-0">Loading reports…</p> : incidents.length === 0 ? <div className="text-center py-5"><i className="bi bi-shield-check fs-1 text-success"></i><h2 className="h5 mt-3">No incidents reported</h2><p className="text-secondary mb-0">New delivery reports will appear here.</p></div> : (
-          <div className="table-responsive"><table className="table align-middle mb-0"><thead><tr><th className="ps-4">Incident</th><th>Delivery</th><th>Severity</th><th>Status</th>{isManager && <th>Reported by</th>}{isManager && <th className="pe-4">Action</th>}</tr></thead><tbody>{incidents.map((incident) => <tr key={incident._id}>
+          <div className="table-responsive"><table className="table align-middle mb-0"><thead><tr><th className="ps-4">Incident</th><th>Delivery</th><th>Alternate route</th><th>Severity</th><th>Status</th>{isManager && <th>Reported by</th>}{isManager && <th className="pe-4">Action</th>}</tr></thead><tbody>{incidents.map((incident) => <tr key={incident._id}>
             <td className="ps-4"><strong>{incident.title}</strong><div className="small text-secondary text-wrap" style={{ maxWidth: 360 }}>{incident.description}</div></td>
             <td>{incident.tripId ? `${incident.tripId.source} → ${incident.tripId.destination}` : "Delivery"}</td>
+            <td>{incident.alternateRouteUrl ? <a href={incident.alternateRouteUrl} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-primary">Open route</a> : <span className="text-secondary">No GPS route</span>}</td>
             <td><span className={`badge ${["High", "Critical"].includes(incident.severity) ? "text-bg-danger" : incident.severity === "Medium" ? "text-bg-warning" : "text-bg-secondary"}`}>{incident.severity}</span></td>
             <td><span className={`badge ${incident.status === "Open" ? "text-bg-warning" : "text-bg-success"}`}>{incident.status}</span></td>
             {isManager && <td>{incident.reporterName}</td>}{isManager && <td className="pe-4">{incident.status === "Open" && <button className="btn btn-sm btn-outline-success" onClick={() => resolve(incident._id)}>Resolve</button>}</td>}

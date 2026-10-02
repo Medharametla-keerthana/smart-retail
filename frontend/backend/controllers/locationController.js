@@ -12,7 +12,7 @@ const canReadVehicle = async (req, vehicleId) => {
 // Update Vehicle Location
 const updateVehicleLocation = async (req, res) => {
   try {
-    const { vehicleId } = req.params;
+    const vehicleId = req.params.vehicleId || req.body.vehicleId;
 
     const {
       latitude,
@@ -22,6 +22,7 @@ const updateVehicleLocation = async (req, res) => {
     } = req.body;
 
     // Check required fields
+    if (!vehicleId) return res.status(400).json({ success: false, message: "Vehicle ID is required" });
     if (latitude === undefined || longitude === undefined) {
       return res.status(400).json({
         success: false,

@@ -13,6 +13,7 @@ const { authorize } = require("../middleware/authMiddleware");
 
 
 // Update Vehicle Location
+router.put("/update", protect, authorize("fleetManager", "driver"), updateVehicleLocation);
 router.put("/:vehicleId", protect, authorize("fleetManager", "driver"), updateVehicleLocation);
 
 // Get Current Location

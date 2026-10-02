@@ -224,7 +224,7 @@ function Deliveries() {
       const token = localStorage.getItem("token");
 
       const response = await fetch(
-        `${API_URL}/trips/${tripId}/status`,
+        `${API_URL}/trips/status`,
         {
           method: "PUT",
           headers: {
@@ -232,6 +232,7 @@ function Deliveries() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
+            tripId,
             status: newStatus,
           }),
         }
@@ -773,6 +774,7 @@ function Deliveries() {
                             {trip.currentLocation || `${trip.currentLatitude}, ${trip.currentLongitude}`}
                           </div>
                         )}
+                        {trip.alternateRouteUrl && <a className="d-inline-block small text-primary mt-2" href={trip.alternateRouteUrl} target="_blank" rel="noreferrer"><i className="bi bi-sign-turn-right me-1"></i>Open updated route</a>}
                         {isManager && trip.customerEmail && (
                           <div className="small text-muted mt-2">Customer: {trip.customerName || trip.customerEmail}</div>
                         )}

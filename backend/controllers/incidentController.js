@@ -1,6 +1,9 @@
 const Incident = require("../models/Incident");
 const Notification = require("../models/Notification");
 const Trip = require("../models/Trip");
+const Vehicle = require("../models/Vehicle");
+const Location = require("../models/Location");
+const User = require("../models/User");
 
 const getIncidents = async (req, res) => {
   try {
@@ -22,13 +25,17 @@ const getIncidents = async (req, res) => {
 
 const reportIncident = async (req, res) => {
   try {
-    const { tripId, title, description, severity = "Medium" } = req.body;
+    const { tripId, title, description, severity = "Medium", latitude, longitude, locationName } = req.body;
     if (!tripId || !title?.trim() || !description?.trim()) {
       return res.status(400).json({ success: false, message: "Choose a delivery and enter an incident title and description" });
     }
     const trip = await Trip.findOne({ _id: tripId, driverId: req.driver._id, status: { $in: ["Scheduled", "In Progress"] } });
     if (!trip) return res.status(404).json({ success: false, message: "Active delivery not found for this driver" });
 
+    const hasCoordinates = Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude)) && latitude !== null && longitude !== null;
+    const alternateRouteUrl = hasCoordinates
+      ? `https://www.google.com/maps/dir/?${new URLSearchParams({ api: "1", origin: `${Number(latitude)},${Number(longitude)}`, destination: trip.destination, travelmode: "driving" }).toString()}`
+      : "";
     const incident = await Incident.create({
       tripId: trip._id,
       vehicleId: trip.vehicleId,
@@ -38,7 +45,23 @@ const reportIncident = async (req, res) => {
       severity,
       reporterName: req.user.name,
       reporterEmail: req.user.email,
+      latitude: hasCoordinates ? Number(latitude) : null,
+      longitude: hasCoordinates ? Number(longitude) : null,
+      locationName: locationName || "",
+      alternateRouteUrl,
     });
+    if (alternateRouteUrl) {
+      trip.alternateRouteUrl = alternateRouteUrl;
+      trip.alternateRouteUpdatedAt = new Date();
+      trip.currentLatitude = Number(latitude);
+      trip.currentLongitude = Number(longitude);
+      trip.currentLocation = locationName || `GPS ${Number(latitude).toFixed(5)}, ${Number(longitude).toFixed(5)}`;
+      await trip.save();
+      await Promise.all([
+        Vehicle.findByIdAndUpdate(trip.vehicleId, { currentLocation: trip.currentLocation }),
+        Location.create({ vehicleId: trip.vehicleId, latitude: Number(latitude), longitude: Number(longitude), locationName: trip.currentLocation, speed: 0 }),
+      ]);
+    }
     if (trip.customerEmail) {
       await Notification.create({
         recipientEmail: trip.customerEmail,
@@ -47,9 +70,19 @@ const reportIncident = async (req, res) => {
         category: "Incident",
         tripId: trip._id,
         incidentId: incident._id,
+        actionUrl: alternateRouteUrl,
       });
     }
-    return res.status(201).json({ success: true, incident });
+    const managers = await User.find({ role: { $in: ["fleetManager", "admin"] } }).select("email");
+    if (managers.length) await Notification.insertMany(managers.map(({ email }) => ({
+      recipientEmail: email,
+      title: "Delivery incident reported",
+      message: `${title.trim()} was reported on the route to ${trip.destination}.`,
+      category: "Incident",
+      tripId: trip._id,
+      incidentId: incident._id,
+    })));
+    return res.status(201).json({ success: true, incident, alternateRouteUrl });
   } catch (error) {
     return res.status(500).json({ success: false, message: error.message });
   }

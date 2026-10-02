@@ -10,6 +10,10 @@ const incidentSchema = new mongoose.Schema({
   status: { type: String, enum: ["Open", "Resolved"], default: "Open" },
   reporterName: { type: String, required: true },
   reporterEmail: { type: String, required: true, lowercase: true },
+  latitude: { type: Number, default: null },
+  longitude: { type: Number, default: null },
+  locationName: { type: String, trim: true, default: "" },
+  alternateRouteUrl: { type: String, default: "" },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Incident", incidentSchema);

@@ -52,6 +52,9 @@ function Tracking() {
 
         if (!cancelled) {
           setVehicles(data.vehicles || []);
+          if (isDriver && data.vehicles?.length) {
+            setLocationForm((current) => ({ ...current, vehicleId: current.vehicleId || data.vehicles[0]._id }));
+          }
           setLastUpdated(new Date().toLocaleTimeString());
           setLoading(false);
         }
@@ -99,6 +102,9 @@ function Tracking() {
       const data = await readApiResponse(response, "Vehicle API");
 
       setVehicles(data.vehicles || []);
+      if (isDriver && data.vehicles?.length) {
+        setLocationForm((current) => ({ ...current, vehicleId: current.vehicleId || data.vehicles[0]._id }));
+      }
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (error) {
       setError(error.message);
@@ -110,13 +116,14 @@ function Tracking() {
     setSavingLocation(true);
     setLocationMessage("");
     try {
-      const response = await fetch(`/api/locations/${locationForm.vehicleId}`, {
+      const response = await fetch("/api/locations/update", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
+          vehicleId: locationForm.vehicleId,
           latitude: Number(locationForm.latitude),
           longitude: Number(locationForm.longitude),
           locationName: locationForm.locationName.trim() || `${locationForm.latitude}, ${locationForm.longitude}`,
@@ -134,6 +141,22 @@ function Tracking() {
     } finally {
       setSavingLocation(false);
     }
+  }
+
+  function captureGpsLocation() {
+    if (!navigator.geolocation) {
+      setLocationMessage("This browser does not provide GPS location. Enter coordinates manually.");
+      return;
+    }
+    setLocationMessage("Waiting for device location permission...");
+    navigator.geolocation.getCurrentPosition((position) => {
+      const latitude = position.coords.latitude.toFixed(6);
+      const longitude = position.coords.longitude.toFixed(6);
+      setLocationForm((current) => ({ ...current, latitude, longitude, locationName: `GPS ${latitude}, ${longitude}` }));
+      setLocationMessage("GPS captured. Save location to share it with the fleet and customer.");
+    }, (geoError) => {
+      setLocationMessage(geoError.code === 1 ? "Location permission was denied. Allow location access in your browser settings." : "Could not get GPS location. Check device location settings and try again.");
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
   }
 
   // =========================================
@@ -618,7 +641,7 @@ function Tracking() {
                 <div className="col-6 col-md-2"><label className="form-label fw-semibold">Longitude</label><input required type="number" step="any" min="-180" max="180" className="form-control" value={locationForm.longitude} onChange={(event) => setLocationForm({ ...locationForm, longitude: event.target.value })} /></div>
                 <div className="col-8 col-md-2"><label className="form-label fw-semibold">Place name</label><input className="form-control" value={locationForm.locationName} onChange={(event) => setLocationForm({ ...locationForm, locationName: event.target.value })} placeholder="Optional" /></div>
                 <div className="col-4 col-md-2"><label className="form-label fw-semibold">Speed km/h</label><input type="number" min="0" step="any" className="form-control" value={locationForm.speed} onChange={(event) => setLocationForm({ ...locationForm, speed: event.target.value })} /></div>
-                <div className="col-12"><button className="btn btn-primary" type="submit" disabled={savingLocation || !vehicles.length}>{savingLocation ? "Saving..." : "Save location"}</button></div>
+                <div className="col-12 d-flex flex-wrap gap-2"><button className="btn btn-outline-success" type="button" onClick={captureGpsLocation}><i className="bi bi-crosshair me-2"></i>Use device GPS</button><button className="btn btn-primary" type="submit" disabled={savingLocation || !vehicles.length}>{savingLocation ? "Saving..." : "Save location"}</button></div>
               </div>
             </div>
           </form>}

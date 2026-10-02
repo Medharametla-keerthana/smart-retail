@@ -12,8 +12,10 @@ const getNotifications = async (req, res) => {
 
 const markRead = async (req, res) => {
   try {
+    const notificationId = req.params.id || req.body.notificationId;
+    if (!notificationId) return res.status(400).json({ success: false, message: "Notification ID is required" });
     const notification = await Notification.findOneAndUpdate(
-      { _id: req.params.id, recipientEmail: req.user.email.toLowerCase() },
+      { _id: notificationId, recipientEmail: req.user.email.toLowerCase() },
       { readAt: new Date() },
       { new: true },
     );

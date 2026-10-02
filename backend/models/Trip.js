@@ -31,6 +31,8 @@ const tripSchema = new mongoose.Schema(
     currentLatitude: { type: Number, default: null },
     currentLongitude: { type: Number, default: null },
     currentLocation: { type: String, default: "" },
+    alternateRouteUrl: { type: String, default: "" },
+    alternateRouteUpdatedAt: { type: Date, default: null },
 
     cargoDetails: {
       type: String,

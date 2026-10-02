@@ -242,7 +242,7 @@ const getTripById = async (req, res) => {
 // Update Trip Status
 const updateTripStatus = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id || req.body.tripId;
     const { status } = req.body;
 
     const validStatuses = [
@@ -252,6 +252,7 @@ const updateTripStatus = async (req, res) => {
       "Cancelled",
     ];
 
+    if (!id) return res.status(400).json({ success: false, message: "Trip ID is required" });
     if (!status) {
       return res.status(400).json({
         success: false,

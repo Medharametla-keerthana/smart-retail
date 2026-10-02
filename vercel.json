@@ -16,7 +16,13 @@
     "api/locations/[...path].js": {
       "maxDuration": 30
     },
+    "api/locations/update.js": {
+      "maxDuration": 30
+    },
     "api/trips/[...path].js": {
+      "maxDuration": 30
+    },
+    "api/trips/status.js": {
       "maxDuration": 30
     },
     "api/drivers/[...path].js": {
@@ -26,6 +32,9 @@
       "maxDuration": 30
     },
     "api/notifications/[...path].js": {
+      "maxDuration": 30
+    },
+    "api/notifications/read.js": {
       "maxDuration": 30
     },
     "api/assignments/[...path].js": {
