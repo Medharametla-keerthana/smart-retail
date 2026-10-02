@@ -5,13 +5,13 @@ const tripSchema = new mongoose.Schema(
     vehicleId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Vehicle",
-      required: true,
+      required: false,
     },
 
     driverId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Driver",
-      required: true,
+      required: false,
     },
 
     source: {
@@ -54,7 +54,7 @@ const tripSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Scheduled", "In Progress", "Completed", "Cancelled"],
+      enum: ["Requested", "Scheduled", "In Progress", "Completed", "Cancelled"],
       default: "Scheduled",
     },
   },

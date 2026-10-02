@@ -6,12 +6,15 @@ const API_URL = "/api";
 function Deliveries() {
   let user = {};
   try { user = JSON.parse(localStorage.getItem("user") || "{}"); } catch { user = {}; }
-  const isManager = !user.role || user.role === "fleetManager";
+  const isManager = !user.role || ["fleetManager", "admin"].includes(user.role);
   const isDriver = user.role === "driver";
+  const isCustomer = user.role === "customer";
   const [trips, setTrips] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [requestForm, setRequestForm] = useState({ source: "", destination: "", cargoDetails: "", startTime: "" });
   const [assignmentTrip, setAssignmentTrip] = useState(null);
   const [assignmentForm, setAssignmentForm] = useState({ vehicleId: "", driverId: "" });
   const [savingAssignment, setSavingAssignment] = useState(false);
@@ -199,6 +202,19 @@ function Deliveries() {
     } finally {
       setSavingDelivery(false);
     }
+  };
+
+  const submitRequest = async (event) => {
+    event.preventDefault(); setSavingDelivery(true); setMessage("");
+    try {
+      const response = await fetch(`${API_URL}/trips/request`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` }, body: JSON.stringify(requestForm) });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Could not send request");
+      setTrips((current) => [data.trip, ...current]); setShowRequestForm(false);
+      setRequestForm({ source: "", destination: "", cargoDetails: "", startTime: "" });
+      setMessage("Request sent. Your fleet manager has been notified.");
+    } catch (error) { setMessage(error.message || "Could not send request"); }
+    finally { setSavingDelivery(false); }
   };
 
   // ==========================================
@@ -415,8 +431,8 @@ function Deliveries() {
         </p>
         </div>
         <div className="delivery-header-actions">
-          {isManager && <button type="button" className="delivery-add-button" onClick={openCreateForm}>
-            <span aria-hidden="true">+</span> Add delivery
+          {(isManager || isCustomer) && <button type="button" className="delivery-add-button" onClick={isCustomer ? () => setShowRequestForm(true) : openCreateForm}>
+            <span aria-hidden="true">+</span> {isCustomer ? "Request a delivery" : "Add delivery"}
           </button>}
           <div className="delivery-live-indicator"><span></span>Trip overview</div>
         </div>
@@ -501,6 +517,8 @@ function Deliveries() {
           </section>
         </div>
       )}
+
+      {showRequestForm && <div className="delivery-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setShowRequestForm(false)}><section className="delivery-modal" role="dialog" aria-modal="true"><div className="delivery-modal-header"><div><p className="delivery-eyebrow">Customer order</p><h2>Request a delivery</h2></div><button type="button" className="delivery-modal-close" onClick={() => setShowRequestForm(false)} aria-label="Close">×</button></div><form className="delivery-form" onSubmit={submitRequest}><label>Pickup location<input required value={requestForm.source} onChange={(event) => setRequestForm({ ...requestForm, source: event.target.value })} /></label><label>Delivery location<input required value={requestForm.destination} onChange={(event) => setRequestForm({ ...requestForm, destination: event.target.value })} /></label><label>What are we delivering?<input value={requestForm.cargoDetails} onChange={(event) => setRequestForm({ ...requestForm, cargoDetails: event.target.value })} /></label><label>Preferred pickup time<input type="datetime-local" value={requestForm.startTime} onChange={(event) => setRequestForm({ ...requestForm, startTime: event.target.value })} /></label><p className="delivery-form-note">The fleet manager will confirm the driver, vehicle, and schedule.</p><div className="delivery-form-actions"><button type="button" className="delivery-form-cancel" onClick={() => setShowRequestForm(false)}>Cancel</button><button type="submit" className="delivery-add-button" disabled={savingDelivery}>{savingDelivery ? "Sending…" : "Send request"}</button></div></form></section></div>}
 
       {assignmentTrip && (
         <div className="delivery-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setAssignmentTrip(null)}>
@@ -827,7 +845,7 @@ function Deliveries() {
                         <div className="delivery-actions">
 
                           {/* START */}
-                          {isManager && trip.status === "Scheduled" && (!trip.vehicleId?._id || !trip.driverId?._id || trip.vehicleId?.vehicleNumber === "Vehicle record unavailable" || trip.driverId?.name === "Driver record unavailable" || !trip.customerEmail) && (
+                          {isManager && ["Requested", "Scheduled"].includes(trip.status) && (trip.status === "Requested" || !trip.vehicleId?._id || !trip.driverId?._id || trip.vehicleId?.vehicleNumber === "Vehicle record unavailable" || trip.driverId?.name === "Driver record unavailable" || !trip.customerEmail) && (
                             <button onClick={() => openAssignmentForm(trip)} className="delivery-action-button delivery-action-start">{trip.customerEmail ? "Assign" : "Link customer"}</button>
                           )}
                           {isDriver && trip.status === "Scheduled" && (

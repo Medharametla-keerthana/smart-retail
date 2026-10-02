@@ -99,7 +99,7 @@ const loginUser = async (req, res) => {
       });
     }
 
-    if (requestedRole && requestedRole !== user.role) {
+    if (requestedRole && requestedRole !== user.role && !(requestedRole === "fleetManager" && user.role === "admin")) {
       return res.status(403).json({ success: false, message: `This account is registered as ${user.role}` });
     }
 

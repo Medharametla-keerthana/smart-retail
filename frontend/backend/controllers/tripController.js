@@ -2,6 +2,7 @@ const Trip = require("../models/Trip");
 const Vehicle = require("../models/Vehicle");
 const Driver = require("../models/Driver");
 const Notification = require("../models/Notification");
+const User = require("../models/User");
 
 const notifyCustomer = async (trip, title, message, category = "Delivery", incidentId = null) => {
   if (!trip.customerEmail) return;
@@ -13,6 +14,20 @@ const roleFilter = (user, driver) => user.role === "driver"
   : user.role === "customer"
     ? { customerEmail: user.email.toLowerCase() }
     : {};
+
+const requestTrip = async (req, res) => {
+  try {
+    const { source, destination, cargoDetails, startTime } = req.body;
+    if (!source?.trim() || !destination?.trim()) return res.status(400).json({ success: false, message: "Pickup and delivery locations are required" });
+    const trip = await Trip.create({
+      source: source.trim(), destination: destination.trim(), cargoDetails: cargoDetails?.trim() || "Not specified",
+      startTime: startTime || undefined, customerName: req.user.name, customerEmail: req.user.email.toLowerCase(), status: "Requested",
+    });
+    const managers = await User.find({ role: { $in: ["fleetManager", "admin"] } }).select("email");
+    if (managers.length) await Notification.insertMany(managers.map(({ email }) => ({ recipientEmail: email, title: "New delivery request", message: `${req.user.name} requested a delivery from ${trip.source} to ${trip.destination}.`, category: "Request", tripId: trip._id })));
+    return res.status(201).json({ success: true, message: "Delivery request sent to the fleet manager", trip });
+  } catch (error) { return res.status(500).json({ success: false, message: error.message }); }
+};
 
 // Create Trip
 const createTrip = async (req, res) => {
@@ -110,7 +125,7 @@ const assignTripResources = async (req, res) => {
     const { customerName, customerEmail } = req.body;
     const trip = await Trip.findById(req.params.id);
     if (!trip) return res.status(404).json({ success: false, message: "Delivery not found" });
-    if (!["Scheduled", "In Progress"].includes(trip.status)) return res.status(400).json({ success: false, message: "Only active deliveries can be assigned" });
+    if (!["Requested", "Scheduled", "In Progress"].includes(trip.status)) return res.status(400).json({ success: false, message: "Only requested or active deliveries can be assigned" });
     if (trip.status === "In Progress") return res.status(400).json({ success: false, message: "Resources cannot be changed while a delivery is in progress" });
     const vehicleId = req.body.vehicleId || trip.vehicleId?.toString();
     const driverId = req.body.driverId || trip.driverId?.toString();
@@ -121,7 +136,7 @@ const assignTripResources = async (req, res) => {
 
     const [vehicle, driver] = await Promise.all([Vehicle.findById(vehicleId), Driver.findById(driverId)]);
     if (!vehicle || !driver) return res.status(404).json({ success: false, message: "The selected vehicle or driver was not found" });
-    const resourcesChanged = String(trip.vehicleId) !== String(vehicle._id) || String(trip.driverId) !== String(driver._id);
+    const resourcesChanged = String(trip.vehicleId || "") !== String(vehicle._id) || String(trip.driverId || "") !== String(driver._id);
     if (resourcesChanged && (vehicle.status !== "Available" || !["Available", "Assigned"].includes(driver.status))) {
       return res.status(409).json({ success: false, message: "The selected vehicle or driver is unavailable" });
     }
@@ -149,6 +164,7 @@ const assignTripResources = async (req, res) => {
     }
     trip.vehicleId = vehicle._id;
     trip.driverId = driver._id;
+    if (trip.status === "Requested") trip.status = "Scheduled";
     if (customerName !== undefined) trip.customerName = String(customerName).trim();
     if (customerEmail !== undefined) trip.customerEmail = String(customerEmail).trim().toLowerCase();
     await trip.save();
@@ -434,6 +450,7 @@ const searchTrips = async (req, res) => {
 };
 
 module.exports = {
+  requestTrip,
   createTrip,
   assignTripResources,
   getAllTrips,
@@ -442,3 +459,4 @@ module.exports = {
   cancelTrip,
   searchTrips,
 };
+

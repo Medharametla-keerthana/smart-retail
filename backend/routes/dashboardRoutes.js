@@ -11,7 +11,7 @@ const protect = require("../middleware/authMiddleware");
 const { authorize } = require("../middleware/authMiddleware");
 
 // Dashboard Summary
-router.get("/summary", protect, authorize("fleetManager"), getDashboardSummary);
+router.get("/summary", protect, authorize("fleetManager", "driver", "customer"), getDashboardSummary);
 
 // Dashboard Analytics
 router.get("/analytics", protect, authorize("fleetManager"), getDashboardAnalytics);

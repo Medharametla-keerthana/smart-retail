@@ -1,6 +1,7 @@
 const Vehicle = require("../models/Vehicle");
 const Driver = require("../models/Driver");
 const Trip = require("../models/Trip");
+const Notification = require("../models/Notification");
 
 // ==========================================
 // DASHBOARD SUMMARY
@@ -8,6 +9,27 @@ const Trip = require("../models/Trip");
 
 const getDashboardSummary = async (req, res) => {
   try {
+    if (req.user.role === "driver") {
+      const driver = req.driver;
+      await driver.populate("assignedVehicle", "vehicleNumber vehicleType status currentLocation");
+      const [totalTrips, completedTrips, activeTrips, upcomingTrips] = await Promise.all([
+        Trip.countDocuments({ driverId: driver._id }),
+        Trip.countDocuments({ driverId: driver._id, status: "Completed" }),
+        Trip.countDocuments({ driverId: driver._id, status: "In Progress" }),
+        Trip.countDocuments({ driverId: driver._id, status: "Scheduled" }),
+      ]);
+      return res.json({ success: true, summary: { driver: { totalTrips, completedTrips, activeTrips, upcomingTrips, availability: driver.status, currentLocation: driver.currentLocation, vehicle: driver.assignedVehicle } } });
+    }
+    if (req.user.role === "customer") {
+      const filter = { customerEmail: req.user.email.toLowerCase() };
+      const [totalTrips, completedTrips, activeTrips, requestedTrips, recentTrips, unreadNotifications] = await Promise.all([
+        Trip.countDocuments(filter), Trip.countDocuments({ ...filter, status: "Completed" }),
+        Trip.countDocuments({ ...filter, status: "In Progress" }), Trip.countDocuments({ ...filter, status: "Requested" }),
+        Trip.find(filter).sort({ createdAt: -1 }).limit(5).select("source destination cargoDetails status startTime createdAt"),
+        Notification.countDocuments({ recipientEmail: req.user.email.toLowerCase(), readAt: null }),
+      ]);
+      return res.json({ success: true, summary: { customer: { totalTrips, completedTrips, activeTrips, requestedTrips, unreadNotifications, recentTrips } } });
+    }
     const totalVehicles = await Vehicle.countDocuments();
 
     const availableVehicles = await Vehicle.countDocuments({

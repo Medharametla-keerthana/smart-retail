@@ -4,7 +4,7 @@ function Navbar({ toggleSidebar }) {
   const navigate = useNavigate();
   let user = {};
   try { user = JSON.parse(localStorage.getItem("user") || "{}"); } catch { user = {}; }
-  const roleLabel = { fleetManager: "Fleet Manager", driver: "Driver", customer: "Customer" }[user.role] || "Fleet Manager";
+  const roleLabel = { fleetManager: "Fleet Manager", admin: "Fleet Manager", driver: "Driver", customer: "Customer" }[user.role] || "Fleet Manager";
 
   function handleLogout() {
     localStorage.removeItem("token");

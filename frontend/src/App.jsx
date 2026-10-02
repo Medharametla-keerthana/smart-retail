@@ -21,7 +21,7 @@ function currentUser() {
 }
 
 function homeForRole(role) {
-  return role === "fleetManager" ? "/dashboard" : "/deliveries";
+  return "/dashboard";
 }
 
 function ProtectedRoute({ children, roles }) {
@@ -71,17 +71,17 @@ function App() {
 
       <Route
         path="/dashboard"
-        element={<ProtectedRoute><>{currentUser()?.role === "fleetManager" || !currentUser()?.role ? <Dashboard /> : <RoleHome />}</></ProtectedRoute>}
+        element={<ProtectedRoute><>{["fleetManager", "admin", undefined].includes(currentUser()?.role) ? <Dashboard /> : <RoleHome />}</></ProtectedRoute>}
       />
 
       <Route
         path="/vehicles"
-        element={<ProtectedRoute roles={["fleetManager"]}><Vehicles /></ProtectedRoute>}
+        element={<ProtectedRoute roles={["fleetManager", "admin"]}><Vehicles /></ProtectedRoute>}
       />
 
       <Route
         path="/drivers"
-        element={<ProtectedRoute roles={["fleetManager"]}><Drivers /></ProtectedRoute>}
+        element={<ProtectedRoute roles={["fleetManager", "admin"]}><Drivers /></ProtectedRoute>}
       />
 
       <Route
@@ -91,12 +91,12 @@ function App() {
 
       <Route
         path="/tracking"
-        element={<ProtectedRoute roles={["fleetManager", "driver"]}><Tracking /></ProtectedRoute>}
+        element={<ProtectedRoute roles={["fleetManager", "admin", "driver"]}><Tracking /></ProtectedRoute>}
       />
 
       <Route
         path="/maintenance"
-        element={<ProtectedRoute roles={["fleetManager"]}><Maintenance /></ProtectedRoute>}
+        element={<ProtectedRoute roles={["fleetManager", "admin"]}><Maintenance /></ProtectedRoute>}
       />
 
       <Route
@@ -106,12 +106,12 @@ function App() {
 
       <Route
         path="/analytics"
-        element={<ProtectedRoute roles={["fleetManager"]}><Analytics /></ProtectedRoute>}
+        element={<ProtectedRoute roles={["fleetManager", "admin"]}><Analytics /></ProtectedRoute>}
       />
 
       <Route
         path="/reports"
-        element={<ProtectedRoute roles={["fleetManager"]}><Reports /></ProtectedRoute>}
+        element={<ProtectedRoute roles={["fleetManager", "admin"]}><Reports /></ProtectedRoute>}
       />
 
       <Route

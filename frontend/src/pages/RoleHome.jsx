@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 function readUser() {
   try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; }
@@ -7,6 +8,11 @@ function readUser() {
 function RoleHome() {
   const user = readUser();
   const isDriver = user.role === "driver";
+  const [summary, setSummary] = useState(null);
+  useEffect(() => {
+    fetch("/api/dashboard/summary", { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })
+      .then((response) => response.json()).then((data) => { if (data.success) setSummary(data.summary); }).catch(() => {});
+  }, []);
   const actions = isDriver
     ? [
         { to: "/deliveries", icon: "bi-box-seam", title: "My deliveries", text: "View assigned routes and update delivery progress." },
@@ -27,6 +33,8 @@ function RoleHome() {
         <p className="mb-0 opacity-75">{isDriver ? "Your route, vehicle updates, and incident reporting in one place." : "Follow your deliveries and receive timely progress and incident updates."}</p>
       </div>
       <div className="row g-3">
+        {isDriver && summary?.driver && <div className="col-12"><div className="row g-3">{[["Completed deliveries", summary.driver.completedTrips], ["Active delivery", summary.driver.activeTrips], ["Upcoming", summary.driver.upcomingTrips], ["Availability", summary.driver.availability]].map(([label, value]) => <div className="col-6 col-xl-3" key={label}><div className="card border-0 shadow-sm rounded-4 h-100"><div className="card-body p-4"><div className="small text-secondary">{label}</div><div className="fs-4 fw-bold mt-2">{value}</div></div></div></div>)}</div><div className="card border-0 shadow-sm rounded-4 mt-3"><div className="card-body p-4"><h2 className="h6 fw-bold">Assigned vehicle</h2><p className="mb-0 text-secondary">{summary.driver.vehicle?.vehicleNumber || "No vehicle currently assigned"}{summary.driver.vehicle?.vehicleType ? ` · ${summary.driver.vehicle.vehicleType}` : ""}</p><p className="small text-secondary mb-0 mt-2">Latest location: {summary.driver.currentLocation || "Not available"}</p></div></div></div>}
+        {!isDriver && summary?.customer && <div className="col-12"><div className="row g-3">{[["Deliveries ordered", summary.customer.totalTrips], ["On the way", summary.customer.activeTrips], ["Completed", summary.customer.completedTrips], ["Awaiting fleet confirmation", summary.customer.requestedTrips]].map(([label, value]) => <div className="col-6 col-xl-3" key={label}><div className="card border-0 shadow-sm rounded-4 h-100"><div className="card-body p-4"><div className="small text-secondary">{label}</div><div className="fs-4 fw-bold mt-2">{value}</div></div></div></div>)}</div>{summary.customer.recentTrips?.length > 0 && <div className="card border-0 shadow-sm rounded-4 mt-3"><div className="card-body p-4"><h2 className="h6 fw-bold">Recent orders</h2>{summary.customer.recentTrips.map((trip) => <div key={trip._id} className="d-flex justify-content-between border-top py-2"><span>{trip.source} → {trip.destination}</span><span className="text-secondary">{trip.status}</span></div>)}</div></div>}</div>}
         {actions.map((action) => (
           <div className="col-12 col-md-6 col-xl-4" key={action.to}>
             <Link to={action.to} className="card h-100 border-0 shadow-sm text-decoration-none text-body rounded-4">

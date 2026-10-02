@@ -45,7 +45,8 @@ const protect = async (req, res, next) => {
 };
 
 const authorize = (...roles) => (req, res, next) => {
-  if (!req.user || !roles.includes(req.user.role)) {
+  const effectiveRole = req.user?.role === "admin" ? "fleetManager" : req.user?.role;
+  if (!req.user || !roles.includes(effectiveRole)) {
     return res.status(403).json({ success: false, message: "You do not have permission to perform this action" });
   }
   return next();

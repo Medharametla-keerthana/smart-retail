@@ -4,7 +4,7 @@ function Sidebar({ sidebarOpen, closeSidebar }) {
   let user = {};
   try { user = JSON.parse(localStorage.getItem("user") || "{}"); } catch { user = {}; }
   const role = user.role || "fleetManager";
-  const links = role === "fleetManager"
+  const links = ["fleetManager", "admin"].includes(role)
     ? [
         { to: "/dashboard", icon: "bi-grid", label: "Dashboard", group: "WORKSPACE" },
         { to: "/vehicles", icon: "bi-truck", label: "Vehicles", group: "FLEET MANAGEMENT" },

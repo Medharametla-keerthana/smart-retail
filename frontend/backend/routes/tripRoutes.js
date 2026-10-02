@@ -4,6 +4,7 @@ const router = express.Router();
 
 const {
   createTrip,
+  requestTrip,
   assignTripResources,
   getAllTrips,
   getTripById,
@@ -21,6 +22,7 @@ const { authorize } = require("../middleware/authMiddleware");
 
 // Create Trip
 router.post("/", protect, authorize("fleetManager"), createTrip);
+router.post("/request", protect, authorize("customer"), requestTrip);
 router.put("/:id/assignment", protect, authorize("fleetManager"), assignTripResources);
 
 // Search and Filter Trips
