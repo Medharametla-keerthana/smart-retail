@@ -7,8 +7,8 @@ function Tracking() {
   })();
   const isDriver = currentUser.role === "driver";
   const [vehicles, setVehicles] = useState([]);
-  const [trackingTrips, setTrackingTrips] = useState([]);
-  const [mapTripId, setMapTripId] = useState("");
+  const [vehicleLocations, setVehicleLocations] = useState([]);
+  const [mapVehicleId, setMapVehicleId] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -21,19 +21,17 @@ function Tracking() {
   const [savingLocation, setSavingLocation] = useState(false);
   const [locationMessage, setLocationMessage] = useState("");
 
-  async function loadTrackingTrips(token) {
-    try {
-      const response = await fetch("/api/trips", { headers: { Authorization: `Bearer ${token}` } });
-      const data = await readApiResponse(response, "Trip API");
-      const liveTrips = (data.trips || []).filter((trip) => trip.status === "In Progress"
-        && Number.isFinite(Number(trip.currentLatitude)) && Number.isFinite(Number(trip.currentLongitude))
-        && trip.currentLatitude !== null && trip.currentLongitude !== null);
-      setTrackingTrips(liveTrips);
-      setMapTripId((current) => liveTrips.some((trip) => trip._id === current) ? current : liveTrips[0]?._id || "");
-    } catch {
-      setTrackingTrips([]);
-      setMapTripId("");
-    }
+  async function loadVehicleLocations(token, fleetVehicles) {
+    const results = await Promise.allSettled(fleetVehicles.map(async (vehicle) => {
+      const response = await fetch(`/api/locations/${vehicle._id}/current`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await readApiResponse(response, "Location API");
+      const location = data.location;
+      if (!Number.isFinite(Number(location?.latitude)) || !Number.isFinite(Number(location?.longitude))) return null;
+      return { ...location, vehicle };
+    }));
+    const latestLocations = results.flatMap((result) => result.status === "fulfilled" && result.value ? [result.value] : []);
+    setVehicleLocations(latestLocations);
+    setMapVehicleId((current) => latestLocations.some((item) => item.vehicle._id === current) ? current : latestLocations[0]?.vehicle._id || "");
   }
 
   // =========================================
@@ -69,8 +67,9 @@ function Tracking() {
         const data = await readApiResponse(response, "Vehicle API");
 
         if (!cancelled) {
-          setVehicles(data.vehicles || []);
-          await loadTrackingTrips(token);
+          const fleetVehicles = data.vehicles || [];
+          setVehicles(fleetVehicles);
+          await loadVehicleLocations(token, fleetVehicles);
           if (isDriver && data.vehicles?.length) {
             setLocationForm((current) => ({ ...current, vehicleId: current.vehicleId || data.vehicles[0]._id }));
           }
@@ -120,8 +119,9 @@ function Tracking() {
 
       const data = await readApiResponse(response, "Vehicle API");
 
-      setVehicles(data.vehicles || []);
-      await loadTrackingTrips(token);
+      const fleetVehicles = data.vehicles || [];
+      setVehicles(fleetVehicles);
+      await loadVehicleLocations(token, fleetVehicles);
       if (isDriver && data.vehicles?.length) {
         setLocationForm((current) => ({ ...current, vehicleId: current.vehicleId || data.vehicles[0]._id }));
       }
@@ -150,7 +150,15 @@ function Tracking() {
           speed: Number(locationForm.speed || 0),
         }),
       });
-      await readApiResponse(response, "Location API");
+      const data = await readApiResponse(response, "Location API");
+      const vehicle = vehicles.find((item) => item._id === locationForm.vehicleId);
+      if (data.location && vehicle) {
+        setVehicleLocations((current) => [
+          { ...data.location, vehicle },
+          ...current.filter((item) => item.vehicle._id !== vehicle._id),
+        ]);
+        setMapVehicleId(vehicle._id);
+      }
       setVehicles((current) => current.map((vehicle) => vehicle._id === locationForm.vehicleId
         ? { ...vehicle, currentLocation: locationForm.locationName.trim() || `${locationForm.latitude}, ${locationForm.longitude}` }
         : vehicle));
@@ -295,11 +303,11 @@ function Tracking() {
     (vehicle) => vehicle.status === "Maintenance"
   ).length;
 
-  const mapTrip = trackingTrips.find((trip) => trip._id === mapTripId);
-  const mapLatitude = mapTrip ? Number(mapTrip.currentLatitude) : null;
-  const mapLongitude = mapTrip ? Number(mapTrip.currentLongitude) : null;
-  const mapBounds = mapTrip ? `${mapLongitude - 0.025}%2C${mapLatitude - 0.018}%2C${mapLongitude + 0.025}%2C${mapLatitude + 0.018}` : "";
-  const mapEmbedUrl = mapTrip ? `https://www.openstreetmap.org/export/embed.html?bbox=${mapBounds}&layer=mapnik&marker=${mapLatitude}%2C${mapLongitude}` : "";
+  const mapLocation = vehicleLocations.find((item) => item.vehicle._id === mapVehicleId);
+  const mapLatitude = mapLocation ? Number(mapLocation.latitude) : null;
+  const mapLongitude = mapLocation ? Number(mapLocation.longitude) : null;
+  const mapBounds = mapLocation ? `${mapLongitude - 0.025}%2C${mapLatitude - 0.018}%2C${mapLongitude + 0.025}%2C${mapLatitude + 0.018}` : "";
+  const mapEmbedUrl = mapLocation ? `https://www.openstreetmap.org/export/embed.html?bbox=${mapBounds}&layer=mapnik&marker=${mapLatitude}%2C${mapLongitude}` : "";
 
   return (
     <>
@@ -655,26 +663,26 @@ function Tracking() {
               <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
                 <div>
                   <h2 className="h5 fw-bold mb-1" id="live-map-title">Live delivery map</h2>
-                  <p className="text-muted small mb-0">Map positions come from the driver’s latest saved GPS update.</p>
+                  <p className="text-muted small mb-0">Latest saved GPS positions for every vehicle, whether assigned or available.</p>
                 </div>
-                {trackingTrips.length > 0 && <label className="small fw-semibold">Active delivery
-                  <select className="form-select mt-1" value={mapTripId} onChange={(event) => setMapTripId(event.target.value)} aria-label="Choose an active delivery to view on the map">
-                    {trackingTrips.map((trip) => <option key={trip._id} value={trip._id}>{trip.vehicleId?.vehicleNumber || "Vehicle"} · {trip.source} to {trip.destination}</option>)}
+                {vehicleLocations.length > 0 && <label className="small fw-semibold">Vehicle
+                  <select className="form-select mt-1" value={mapVehicleId} onChange={(event) => setMapVehicleId(event.target.value)} aria-label="Choose a vehicle to view on the map">
+                    {vehicleLocations.map((item) => <option key={item.vehicle._id} value={item.vehicle._id}>{item.vehicle.vehicleNumber} · {item.vehicle.status}</option>)}
                   </select>
                 </label>}
               </div>
-              {mapTrip ? <>
+              {mapLocation ? <>
                 <div className="rounded-3 overflow-hidden border" style={{ height: "min(52vh, 440px)", minHeight: "280px" }}>
-                  <iframe title={`OpenStreetMap showing ${mapTrip.vehicleId?.vehicleNumber || "delivery vehicle"} current location`} src={mapEmbedUrl} className="w-100 h-100 border-0" loading="lazy" referrerPolicy="no-referrer" />
+                  <iframe title={`OpenStreetMap showing ${mapLocation.vehicle.vehicleNumber} current location`} src={mapEmbedUrl} className="w-100 h-100 border-0" loading="lazy" referrerPolicy="no-referrer" />
                 </div>
                 <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
-                  <div><strong>{mapTrip.vehicleId?.vehicleNumber || "Vehicle"}</strong><span className="text-secondary mx-2">·</span>{mapTrip.source} <span aria-hidden="true">→</span> {mapTrip.destination}<div className="small text-secondary">{mapTrip.currentLocation || `${mapLatitude.toFixed(5)}, ${mapLongitude.toFixed(5)}`}</div></div>
+                  <div><strong>{mapLocation.vehicle.vehicleNumber}</strong><span className="text-secondary mx-2">·</span>{mapLocation.vehicle.status}<div className="small text-secondary">{mapLocation.locationName || `${mapLatitude.toFixed(5)}, ${mapLongitude.toFixed(5)}`} · Updated {new Date(mapLocation.recordedAt || mapLocation.createdAt).toLocaleString()}</div></div>
                   <a className="btn btn-sm btn-outline-success" href={`https://www.openstreetmap.org/?mlat=${mapLatitude}&mlon=${mapLongitude}#map=13/${mapLatitude}/${mapLongitude}`} target="_blank" rel="noreferrer">Open larger map</a>
                 </div>
               </> : <div className="rounded-3 bg-light border p-4 text-center">
                 <i className="bi bi-map fs-2 text-success" aria-hidden="true" />
-                <h3 className="h6 fw-bold mt-2">No live GPS positions yet</h3>
-                <p className="text-secondary mb-0">When a driver starts an assigned delivery and saves a GPS location, its current position will appear here.</p>
+                <h3 className="h6 fw-bold mt-2">No saved GPS positions yet</h3>
+                <p className="text-secondary mb-0">The map will show each vehicle after its driver saves a GPS location. Fleet managers can view available and assigned vehicles here.</p>
               </div>}
               <small className="text-secondary d-block mt-2">Map data © OpenStreetMap contributors</small>
             </div>
