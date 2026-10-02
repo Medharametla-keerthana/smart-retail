@@ -2,10 +2,13 @@ import { useEffect, useMemo, useState } from "react";
 import { readApiResponse } from "../utils/apiResponse";
 
 function Tracking() {
-  let currentUser = {};
-  try { currentUser = JSON.parse(localStorage.getItem("user") || "{}"); } catch { currentUser = {}; }
+  const currentUser = (() => {
+    try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; }
+  })();
   const isDriver = currentUser.role === "driver";
   const [vehicles, setVehicles] = useState([]);
+  const [trackingTrips, setTrackingTrips] = useState([]);
+  const [mapTripId, setMapTripId] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -17,6 +20,21 @@ function Tracking() {
   const [locationForm, setLocationForm] = useState({ vehicleId: "", latitude: "", longitude: "", locationName: "", speed: "" });
   const [savingLocation, setSavingLocation] = useState(false);
   const [locationMessage, setLocationMessage] = useState("");
+
+  async function loadTrackingTrips(token) {
+    try {
+      const response = await fetch("/api/trips", { headers: { Authorization: `Bearer ${token}` } });
+      const data = await readApiResponse(response, "Trip API");
+      const liveTrips = (data.trips || []).filter((trip) => trip.status === "In Progress"
+        && Number.isFinite(Number(trip.currentLatitude)) && Number.isFinite(Number(trip.currentLongitude))
+        && trip.currentLatitude !== null && trip.currentLongitude !== null);
+      setTrackingTrips(liveTrips);
+      setMapTripId((current) => liveTrips.some((trip) => trip._id === current) ? current : liveTrips[0]?._id || "");
+    } catch {
+      setTrackingTrips([]);
+      setMapTripId("");
+    }
+  }
 
   // =========================================
   // GET VEHICLES FROM BACKEND
@@ -52,6 +70,7 @@ function Tracking() {
 
         if (!cancelled) {
           setVehicles(data.vehicles || []);
+          await loadTrackingTrips(token);
           if (isDriver && data.vehicles?.length) {
             setLocationForm((current) => ({ ...current, vehicleId: current.vehicleId || data.vehicles[0]._id }));
           }
@@ -71,7 +90,7 @@ function Tracking() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isDriver]);
 
   // =========================================
   // REFRESH VEHICLES
@@ -102,6 +121,7 @@ function Tracking() {
       const data = await readApiResponse(response, "Vehicle API");
 
       setVehicles(data.vehicles || []);
+      await loadTrackingTrips(token);
       if (isDriver && data.vehicles?.length) {
         setLocationForm((current) => ({ ...current, vehicleId: current.vehicleId || data.vehicles[0]._id }));
       }
@@ -130,7 +150,7 @@ function Tracking() {
           speed: Number(locationForm.speed || 0),
         }),
       });
-      const data = await readApiResponse(response, "Location API");
+      await readApiResponse(response, "Location API");
       setVehicles((current) => current.map((vehicle) => vehicle._id === locationForm.vehicleId
         ? { ...vehicle, currentLocation: locationForm.locationName.trim() || `${locationForm.latitude}, ${locationForm.longitude}` }
         : vehicle));
@@ -274,6 +294,12 @@ function Tracking() {
   const maintenanceVehicles = vehicles.filter(
     (vehicle) => vehicle.status === "Maintenance"
   ).length;
+
+  const mapTrip = trackingTrips.find((trip) => trip._id === mapTripId);
+  const mapLatitude = mapTrip ? Number(mapTrip.currentLatitude) : null;
+  const mapLongitude = mapTrip ? Number(mapTrip.currentLongitude) : null;
+  const mapBounds = mapTrip ? `${mapLongitude - 0.025}%2C${mapLatitude - 0.018}%2C${mapLongitude + 0.025}%2C${mapLatitude + 0.018}` : "";
+  const mapEmbedUrl = mapTrip ? `https://www.openstreetmap.org/export/embed.html?bbox=${mapBounds}&layer=mapnik&marker=${mapLatitude}%2C${mapLongitude}` : "";
 
   return (
     <>
@@ -623,6 +649,36 @@ function Tracking() {
           {/* =========================================
               VEHICLE LOCATION OVERVIEW
           ========================================== */}
+
+          <section className="card border-0 shadow-sm mb-4" aria-labelledby="live-map-title">
+            <div className="card-body">
+              <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
+                <div>
+                  <h2 className="h5 fw-bold mb-1" id="live-map-title">Live delivery map</h2>
+                  <p className="text-muted small mb-0">Map positions come from the driver’s latest saved GPS update.</p>
+                </div>
+                {trackingTrips.length > 0 && <label className="small fw-semibold">Active delivery
+                  <select className="form-select mt-1" value={mapTripId} onChange={(event) => setMapTripId(event.target.value)} aria-label="Choose an active delivery to view on the map">
+                    {trackingTrips.map((trip) => <option key={trip._id} value={trip._id}>{trip.vehicleId?.vehicleNumber || "Vehicle"} · {trip.source} to {trip.destination}</option>)}
+                  </select>
+                </label>}
+              </div>
+              {mapTrip ? <>
+                <div className="rounded-3 overflow-hidden border" style={{ height: "min(52vh, 440px)", minHeight: "280px" }}>
+                  <iframe title={`OpenStreetMap showing ${mapTrip.vehicleId?.vehicleNumber || "delivery vehicle"} current location`} src={mapEmbedUrl} className="w-100 h-100 border-0" loading="lazy" referrerPolicy="no-referrer" />
+                </div>
+                <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3">
+                  <div><strong>{mapTrip.vehicleId?.vehicleNumber || "Vehicle"}</strong><span className="text-secondary mx-2">·</span>{mapTrip.source} <span aria-hidden="true">→</span> {mapTrip.destination}<div className="small text-secondary">{mapTrip.currentLocation || `${mapLatitude.toFixed(5)}, ${mapLongitude.toFixed(5)}`}</div></div>
+                  <a className="btn btn-sm btn-outline-success" href={`https://www.openstreetmap.org/?mlat=${mapLatitude}&mlon=${mapLongitude}#map=13/${mapLatitude}/${mapLongitude}`} target="_blank" rel="noreferrer">Open larger map</a>
+                </div>
+              </> : <div className="rounded-3 bg-light border p-4 text-center">
+                <i className="bi bi-map fs-2 text-success" aria-hidden="true" />
+                <h3 className="h6 fw-bold mt-2">No live GPS positions yet</h3>
+                <p className="text-secondary mb-0">When a driver starts an assigned delivery and saves a GPS location, its current position will appear here.</p>
+              </div>}
+              <small className="text-secondary d-block mt-2">Map data © OpenStreetMap contributors</small>
+            </div>
+          </section>
 
           {isDriver && <form className="card border-0 shadow-sm mb-4" onSubmit={submitLocation}>
             <div className="card-body">
