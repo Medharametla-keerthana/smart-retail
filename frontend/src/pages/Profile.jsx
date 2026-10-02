@@ -7,6 +7,7 @@ function Profile() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -46,6 +47,30 @@ function Profile() {
 
     loadProfile();
   }, []);
+
+  const saveProfile = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setMessage("");
+    try {
+      const response = await fetch(`${API_URL}/auth/profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ name: user.name, email: user.email }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Could not update profile");
+      setUser(data.user);
+      setMessage("Profile updated successfully");
+    } catch (error) {
+      setMessage(error.message || "Unable to update profile");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -90,9 +115,7 @@ function Profile() {
         </div>
       )}
 
-      {/* PROFILE CARD */}
-
-      <div className="profile-card">
+      <form className="profile-card" onSubmit={saveProfile}>
 
         {/* AVATAR */}
 
@@ -102,13 +125,16 @@ function Profile() {
 
         {/* NAME */}
 
-        <h2>{user.name || "User"}</h2>
-
-        <p className="profile-email">
-          {user.email || "-"}
-        </p>
-
-      </div>
+        <label className="w-100 text-start">
+          <span className="profile-label">Full name</span>
+          <input className="form-control mt-1" required maxLength="100" value={user.name || ""} onChange={(event) => setUser({ ...user, name: event.target.value })} />
+        </label>
+        <label className="w-100 text-start mt-3">
+          <span className="profile-label">Email</span>
+          <input className="form-control mt-1" type="email" required maxLength="254" value={user.email || ""} onChange={(event) => setUser({ ...user, email: event.target.value })} />
+        </label>
+        <button className="btn btn-primary mt-3" type="submit" disabled={saving}>{saving ? "Saving..." : "Save profile"}</button>
+      </form>
 
       {/* ACCOUNT INFORMATION */}
 

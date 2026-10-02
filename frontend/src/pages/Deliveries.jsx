@@ -5,6 +5,20 @@ const API_URL = "/api";
 
 function Deliveries() {
   const [trips, setTrips] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [drivers, setDrivers] = useState([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [loadingResources, setLoadingResources] = useState(false);
+  const [savingDelivery, setSavingDelivery] = useState(false);
+  const [deliveryForm, setDeliveryForm] = useState({
+    vehicleId: "",
+    driverId: "",
+    source: "",
+    destination: "",
+    cargoDetails: "",
+    distance: "",
+    startTime: "",
+  });
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [loading, setLoading] = useState(true);
@@ -41,6 +55,88 @@ function Deliveries() {
 
     loadTrips();
   }, []);
+
+  const openCreateForm = async () => {
+    setShowCreateForm(true);
+    setLoadingResources(true);
+    setMessage("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const [vehiclesResponse, driversResponse] = await Promise.all([
+        fetch(`${API_URL}/vehicles`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/drivers`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+      const [vehiclesData, driversData] = await Promise.all([
+        vehiclesResponse.json(),
+        driversResponse.json(),
+      ]);
+
+      if (!vehiclesResponse.ok || !driversResponse.ok) {
+        throw new Error(
+          vehiclesData.message || driversData.message || "Could not load available vehicles and drivers",
+        );
+      }
+
+      setVehicles(vehiclesData.vehicles || []);
+      setDrivers(driversData.drivers || []);
+    } catch (error) {
+      setMessage(error.message || "Could not load available vehicles and drivers");
+    } finally {
+      setLoadingResources(false);
+    }
+  };
+
+  const submitDelivery = async (event) => {
+    event.preventDefault();
+    setSavingDelivery(true);
+    setMessage("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL}/trips`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...deliveryForm,
+          distance: Number(deliveryForm.distance || 0),
+          startTime: deliveryForm.startTime
+            ? new Date(deliveryForm.startTime).toISOString()
+            : undefined,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Could not create delivery");
+      }
+
+      setTrips((currentTrips) => [data.trip, ...currentTrips]);
+      setShowCreateForm(false);
+      setDeliveryForm({
+        vehicleId: "",
+        driverId: "",
+        source: "",
+        destination: "",
+        cargoDetails: "",
+        distance: "",
+        startTime: "",
+      });
+      setMessage("Delivery created and vehicle and driver reserved.");
+      window.setTimeout(() => setMessage(""), 4000);
+    } catch (error) {
+      setMessage(error.message || "Could not create delivery");
+    } finally {
+      setSavingDelivery(false);
+    }
+  };
 
   // ==========================================
   // UPDATE TRIP STATUS
@@ -177,6 +273,39 @@ function Deliveries() {
     return matchesSearch && matchesStatus;
   });
 
+  const activeVehicleIds = new Set(
+    trips
+      .filter((trip) => ["Scheduled", "In Progress"].includes(trip.status))
+      .map((trip) => String(trip.vehicleId?._id || trip.vehicleId)),
+  );
+  const activeDriverIds = new Set(
+    trips
+      .filter((trip) => ["Scheduled", "In Progress"].includes(trip.status))
+      .map((trip) => String(trip.driverId?._id || trip.driverId)),
+  );
+  const availableVehicles = vehicles.filter(
+    (vehicle) => vehicle.status === "Available" && !activeVehicleIds.has(String(vehicle._id)),
+  );
+  const selectedVehicle = vehicles.find(
+    (vehicle) => vehicle._id === deliveryForm.vehicleId,
+  );
+  const availableDrivers = drivers.filter((driver) => {
+    if (activeDriverIds.has(String(driver._id))) return false;
+    if (!["Available", "Assigned"].includes(driver.status)) return false;
+
+    const linkedVehicle = vehicles.find(
+      (vehicle) =>
+        String(vehicle.driverId?._id || vehicle.driverId || "") === String(driver._id) ||
+        String(driver.assignedVehicle?._id || driver.assignedVehicle || "") === String(vehicle._id),
+    );
+
+    if (linkedVehicle && linkedVehicle._id !== selectedVehicle?._id) return false;
+    if (driver.status === "Assigned" && linkedVehicle?._id !== selectedVehicle?._id) return false;
+    if (selectedVehicle?.driverId && String(selectedVehicle.driverId?._id || selectedVehicle.driverId) !== String(driver._id)) return false;
+
+    return true;
+  });
+
   // ==========================================
   // FORMAT DATE
   // ==========================================
@@ -220,7 +349,12 @@ function Deliveries() {
           Manage and monitor fleet trips
         </p>
         </div>
-        <div className="delivery-live-indicator"><span></span>Trip overview</div>
+        <div className="delivery-header-actions">
+          <button type="button" className="delivery-add-button" onClick={openCreateForm}>
+            <span aria-hidden="true">+</span> Add delivery
+          </button>
+          <div className="delivery-live-indicator"><span></span>Trip overview</div>
+        </div>
       </div>
 
       {/* ==========================================
@@ -229,6 +363,69 @@ function Deliveries() {
       {message && (
         <div className="delivery-message">
           {message}
+        </div>
+      )}
+
+      {showCreateForm && (
+        <div className="delivery-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setShowCreateForm(false)}>
+          <section className="delivery-modal" role="dialog" aria-modal="true" aria-labelledby="delivery-form-title">
+            <div className="delivery-modal-header">
+              <div>
+                <p className="delivery-eyebrow">New trip</p>
+                <h2 id="delivery-form-title">Add delivery</h2>
+              </div>
+              <button type="button" className="delivery-modal-close" onClick={() => setShowCreateForm(false)} aria-label="Close">×</button>
+            </div>
+
+            {loadingResources ? (
+              <p className="delivery-form-note">Loading available vehicles and drivers…</p>
+            ) : (
+              <form className="delivery-form" onSubmit={submitDelivery}>
+                <label>
+                  Source
+                  <input required value={deliveryForm.source} onChange={(event) => setDeliveryForm({ ...deliveryForm, source: event.target.value })} placeholder="Pickup location" />
+                </label>
+                <label>
+                  Destination
+                  <input required value={deliveryForm.destination} onChange={(event) => setDeliveryForm({ ...deliveryForm, destination: event.target.value })} placeholder="Delivery location" />
+                </label>
+                <label>
+                  Vehicle
+                  <select required value={deliveryForm.vehicleId} onChange={(event) => setDeliveryForm({ ...deliveryForm, vehicleId: event.target.value, driverId: "" })}>
+                    <option value="">Select an available vehicle</option>
+                    {availableVehicles.map((vehicle) => <option key={vehicle._id} value={vehicle._id}>{vehicle.vehicleNumber} · {vehicle.vehicleType}</option>)}
+                  </select>
+                </label>
+                <label>
+                  Driver
+                  <select required value={deliveryForm.driverId} onChange={(event) => setDeliveryForm({ ...deliveryForm, driverId: event.target.value })} disabled={!selectedVehicle}>
+                    <option value="">{selectedVehicle ? "Select an available driver" : "Select a vehicle first"}</option>
+                    {availableDrivers.map((driver) => <option key={driver._id} value={driver._id}>{driver.name} · {driver.phone}</option>)}
+                  </select>
+                </label>
+                {selectedVehicle && availableDrivers.length === 0 && <p className="delivery-form-note">No available driver can be assigned to this vehicle.</p>}
+                {availableVehicles.length === 0 && <p className="delivery-form-note">There are no available vehicles for a new delivery.</p>}
+                <label>
+                  Cargo details
+                  <input value={deliveryForm.cargoDetails} onChange={(event) => setDeliveryForm({ ...deliveryForm, cargoDetails: event.target.value })} placeholder="Optional" />
+                </label>
+                <label>
+                  Distance (km)
+                  <input type="number" min="0" step="any" value={deliveryForm.distance} onChange={(event) => setDeliveryForm({ ...deliveryForm, distance: event.target.value })} placeholder="0" />
+                </label>
+                <label>
+                  Start time
+                  <input type="datetime-local" value={deliveryForm.startTime} onChange={(event) => setDeliveryForm({ ...deliveryForm, startTime: event.target.value })} />
+                </label>
+                <div className="delivery-form-actions">
+                  <button type="button" className="delivery-form-cancel" onClick={() => setShowCreateForm(false)}>Cancel</button>
+                  <button type="submit" className="delivery-add-button" disabled={savingDelivery || loadingResources || !availableVehicles.length}>
+                    {savingDelivery ? "Saving…" : "Save delivery"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </section>
         </div>
       )}
 

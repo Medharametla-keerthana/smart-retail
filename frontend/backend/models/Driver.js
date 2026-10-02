@@ -33,7 +33,7 @@ const driverSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Available", "On Trip", "Inactive"],
+      enum: ["Available", "Assigned", "On Trip", "Inactive"],
       default: "Available",
     },
 

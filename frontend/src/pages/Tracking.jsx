@@ -10,6 +10,9 @@ function Tracking() {
   const [error, setError] = useState("");
 
   const [lastUpdated, setLastUpdated] = useState("");
+  const [locationForm, setLocationForm] = useState({ vehicleId: "", latitude: "", longitude: "", locationName: "", speed: "" });
+  const [savingLocation, setSavingLocation] = useState(false);
+  const [locationMessage, setLocationMessage] = useState("");
 
   // =========================================
   // GET VEHICLES FROM BACKEND
@@ -107,6 +110,38 @@ function Tracking() {
       setLastUpdated(new Date().toLocaleTimeString());
     } catch (error) {
       setError(error.message);
+    }
+  }
+
+  async function submitLocation(event) {
+    event.preventDefault();
+    setSavingLocation(true);
+    setLocationMessage("");
+    try {
+      const response = await fetch(`/api/locations/${locationForm.vehicleId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          latitude: Number(locationForm.latitude),
+          longitude: Number(locationForm.longitude),
+          locationName: locationForm.locationName.trim() || `${locationForm.latitude}, ${locationForm.longitude}`,
+          speed: Number(locationForm.speed || 0),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Could not save vehicle location");
+      setVehicles((current) => current.map((vehicle) => vehicle._id === locationForm.vehicleId
+        ? { ...vehicle, currentLocation: locationForm.locationName.trim() || `${locationForm.latitude}, ${locationForm.longitude}` }
+        : vehicle));
+      setLocationMessage("Location update saved.");
+      setLocationForm((current) => ({ ...current, latitude: "", longitude: "", locationName: "", speed: "" }));
+    } catch (error) {
+      setLocationMessage(error.message || "Unable to connect to backend");
+    } finally {
+      setSavingLocation(false);
     }
   }
 
@@ -574,6 +609,28 @@ function Tracking() {
           {/* =========================================
               VEHICLE LOCATION OVERVIEW
           ========================================== */}
+
+          <form className="card border-0 shadow-sm mb-4" onSubmit={submitLocation}>
+            <div className="card-body">
+              <h5 className="fw-bold mb-1">Record a vehicle location</h5>
+              <p className="text-muted small">Save coordinates and a place name to the vehicle’s location history.</p>
+              {locationMessage && <div className="alert alert-info py-2">{locationMessage}</div>}
+              <div className="row g-3 align-items-end">
+                <div className="col-12 col-md-4">
+                  <label className="form-label fw-semibold">Vehicle</label>
+                  <select required className="form-select" value={locationForm.vehicleId} onChange={(event) => setLocationForm({ ...locationForm, vehicleId: event.target.value })}>
+                    <option value="">Select a vehicle</option>
+                    {vehicles.map((vehicle) => <option key={vehicle._id} value={vehicle._id}>{vehicle.vehicleNumber}</option>)}
+                  </select>
+                </div>
+                <div className="col-6 col-md-2"><label className="form-label fw-semibold">Latitude</label><input required type="number" step="any" min="-90" max="90" className="form-control" value={locationForm.latitude} onChange={(event) => setLocationForm({ ...locationForm, latitude: event.target.value })} /></div>
+                <div className="col-6 col-md-2"><label className="form-label fw-semibold">Longitude</label><input required type="number" step="any" min="-180" max="180" className="form-control" value={locationForm.longitude} onChange={(event) => setLocationForm({ ...locationForm, longitude: event.target.value })} /></div>
+                <div className="col-8 col-md-2"><label className="form-label fw-semibold">Place name</label><input className="form-control" value={locationForm.locationName} onChange={(event) => setLocationForm({ ...locationForm, locationName: event.target.value })} placeholder="Optional" /></div>
+                <div className="col-4 col-md-2"><label className="form-label fw-semibold">Speed km/h</label><input type="number" min="0" step="any" className="form-control" value={locationForm.speed} onChange={(event) => setLocationForm({ ...locationForm, speed: event.target.value })} /></div>
+                <div className="col-12"><button className="btn btn-primary" type="submit" disabled={savingLocation || !vehicles.length}>{savingLocation ? "Saving..." : "Save location"}</button></div>
+              </div>
+            </div>
+          </form>
 
           <div className="card border-0 shadow-sm mb-4">
 

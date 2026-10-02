@@ -271,7 +271,7 @@ function Drivers() {
   ).length;
 
   const assignedCount = drivers.filter(
-    (driver) => driver.status === "On Trip"
+    (driver) => driver.status === "Assigned" || driver.status === "On Trip"
   ).length;
 
   const otherCount =

@@ -112,9 +112,37 @@ const loginUser = async (req, res) => {
   }
 };
 
+// Update the signed-in user's basic profile details.
+const updateProfile = async (req, res) => {
+  try {
+    const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
+    const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
+
+    if (!name || !email) {
+      return res.status(400).json({ success: false, message: "Name and email are required" });
+    }
+
+    const duplicate = await User.findOne({ email, _id: { $ne: req.user._id } });
+    if (duplicate) {
+      return res.status(409).json({ success: false, message: "That email is already in use" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { name, email },
+      { new: true, runValidators: true, select: "name email createdAt updatedAt" }
+    );
+
+    return res.status(200).json({ success: true, message: "Profile updated successfully", user });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 
 // Export Authentication Functions
 module.exports = {
   registerUser,
   loginUser,
+  updateProfile,
 };
