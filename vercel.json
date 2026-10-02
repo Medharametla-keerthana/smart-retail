@@ -7,13 +7,7 @@
     "api/[...path].js": {
       "maxDuration": 30
     },
-    "api/vehicles/[vehicleId].js": {
-      "maxDuration": 30
-    },
     "api/vehicles/[...path].js": {
-      "maxDuration": 30
-    },
-    "api/locations/[vehicleId].js": {
       "maxDuration": 30
     },
     "api/locations/[...path].js": {
