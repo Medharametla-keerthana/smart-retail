@@ -13,6 +13,7 @@ function RoleHome() {
   const isDriver = user.role === "driver";
   const [summary, setSummary] = useState(null);
   const [trips, setTrips] = useState([]);
+  const [reportedIncidents, setReportedIncidents] = useState(0);
   const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
@@ -20,21 +21,24 @@ function RoleHome() {
     Promise.all([
       fetch("/api/dashboard/summary", { headers: authHeaders() }).then((response) => readApiResponse(response, "Dashboard API")),
       fetch("/api/trips", { headers: authHeaders() }).then((response) => readApiResponse(response, "Delivery API")),
-    ]).then(([summaryData, tripsData]) => {
+      isDriver ? fetch("/api/incidents", { headers: authHeaders() }).then((response) => readApiResponse(response, "Incidents API")) : Promise.resolve(null),
+    ]).then(([summaryData, tripsData, incidentData]) => {
       if (!active) return;
       setSummary(summaryData.summary);
       setTrips(tripsData.trips || []);
+      setReportedIncidents(incidentData?.incidents?.length || 0);
     }).catch((error) => { if (active) setLoadError(error.message); });
     return () => { active = false; };
-  }, []);
+  }, [isDriver]);
 
   const driver = summary?.driver;
   const customer = summary?.customer;
   const driverTrips = trips.filter((trip) => ["In Progress", "Scheduled"].includes(trip.status));
   const customerTrips = customer?.recentTrips || [];
+  const assignedTrips = trips.filter((trip) => ["Scheduled", "In Progress"].includes(trip.status)).length;
   const cards = isDriver
-    ? [["Completed deliveries", driver?.completedTrips ?? 0, "bi-check2-circle", "success"], ["Active delivery", driver?.activeTrips ?? 0, "bi-truck", "primary"], ["Upcoming deliveries", driver?.upcomingTrips ?? 0, "bi-calendar-check", "warning"], ["Availability", driver?.availability || "Loading", "bi-person-check", driver?.availability === "Available" ? "success" : "secondary"]]
-    : [["Total orders", customer?.totalTrips ?? 0, "bi-box-seam", "primary"], ["On the way", customer?.activeTrips ?? 0, "bi-truck", "info"], ["Delivered", customer?.completedTrips ?? 0, "bi-check2-circle", "success"], ["Awaiting confirmation", customer?.requestedTrips ?? 0, "bi-hourglass-split", "warning"]];
+    ? [["Deliveries completed", driver?.completedTrips ?? 0, "bi-check2-circle", "success"], ["Assigned deliveries", assignedTrips, "bi-truck", "primary"], ["Incidents reported", reportedIncidents, "bi-exclamation-triangle", "warning"], ["Availability", driver?.availability || "Loading", "bi-person-check", driver?.availability === "Available" ? "success" : "secondary"]]
+    : [["Deliveries ordered", customer?.totalTrips ?? 0, "bi-box-seam", "primary"], ["In progress", customer?.activeTrips ?? 0, "bi-truck", "info"], ["Delivered to you", customer?.completedTrips ?? 0, "bi-check2-circle", "success"], ["Awaiting assignment", customer?.requestedTrips ?? 0, "bi-hourglass-split", "warning"]];
 
   return (
     <main className="container-fluid py-3 py-lg-4">
