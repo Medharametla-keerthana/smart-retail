@@ -25,9 +25,6 @@
     "api/trips/[...path].js": {
       "maxDuration": 30
     },
-    "api/trips/[id]/assignment.js": {
-      "maxDuration": 30
-    },
     "api/trips/status.js": {
       "maxDuration": 30
     },
