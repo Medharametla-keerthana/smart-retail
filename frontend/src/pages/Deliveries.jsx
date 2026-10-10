@@ -135,7 +135,7 @@ function Deliveries() {
     event.preventDefault();
     setSavingAssignment(true);
     try {
-      const response = await fetch(`${API_URL}/trips/${assignmentTrip._id}/assignment`, {
+      const response = await fetch(`${API_URL}/trip-assignment?tripId=${encodeURIComponent(assignmentTrip._id)}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
         body: JSON.stringify(assignmentForm),

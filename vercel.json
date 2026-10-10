@@ -28,6 +28,9 @@
     "api/trips/status.js": {
       "maxDuration": 30
     },
+    "api/trip-assignment.js": {
+      "maxDuration": 30
+    },
     "api/drivers/[...path].js": {
       "maxDuration": 30
     },
