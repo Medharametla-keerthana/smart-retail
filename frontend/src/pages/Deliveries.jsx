@@ -37,6 +37,24 @@ function Deliveries() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
+  useEffect(() => {
+    if (!message) return undefined;
+    const timeout = window.setTimeout(() => setMessage(""), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [message]);
+
+  const locationCity = (value = "") => {
+    const text = String(value).toLowerCase();
+    const cities = ["hyderabad", "bangalore", "bengaluru", "chennai", "mumbai", "delhi", "pune", "kolkata", "ahmedabad", "jaipur", "coimbatore", "kochi", "visakhapatnam", "vijayawada", "mysore", "mysuru"];
+    return cities.find((city) => text.includes(city))?.replace("bengaluru", "bangalore").replace("mysore", "mysuru") || "";
+  };
+
+  const locationMatches = (resourceLocation, deliveryLocation) => {
+    const resourceCity = locationCity(resourceLocation);
+    const deliveryCity = locationCity(deliveryLocation);
+    return !resourceCity || !deliveryCity || resourceCity === deliveryCity;
+  };
+
   // ==========================================
   // LOAD TRIPS FROM BACKEND
   // ==========================================
@@ -363,7 +381,7 @@ function Deliveries() {
       .map((trip) => String(trip.driverId?._id || trip.driverId)),
   );
   const availableVehicles = vehicles.filter(
-    (vehicle) => vehicle.status === "Available" && !activeVehicleIds.has(String(vehicle._id)),
+    (vehicle) => vehicle.status === "Available" && !activeVehicleIds.has(String(vehicle._id)) && locationMatches(vehicle.currentLocation, deliveryForm.source),
   );
   const selectedVehicle = vehicles.find(
     (vehicle) => vehicle._id === deliveryForm.vehicleId,
@@ -381,6 +399,7 @@ function Deliveries() {
     if (linkedVehicle && linkedVehicle._id !== selectedVehicle?._id) return false;
     if (driver.status === "Assigned" && linkedVehicle?._id !== selectedVehicle?._id) return false;
     if (selectedVehicle?.driverId && String(selectedVehicle.driverId?._id || selectedVehicle.driverId) !== String(driver._id)) return false;
+    if (!locationMatches(driver.currentLocation, deliveryForm.source)) return false;
 
     return true;
   });
@@ -440,8 +459,9 @@ function Deliveries() {
           MESSAGE
       ========================================== */}
       {message && (
-        <div className="delivery-message">
-          {message}
+        <div className={`delivery-toast ${/could not|failed|unable|unavailable|already assigned|select a vehicle/i.test(message) ? "delivery-toast-error" : ""}`} role="status" aria-live="polite">
+          <span>{message}</span>
+          <button type="button" onClick={() => setMessage("")} aria-label="Dismiss message">×</button>
         </div>
       )}
 
@@ -524,8 +544,8 @@ function Deliveries() {
             <div className="delivery-modal-header"><div><p className="delivery-eyebrow">Delivery setup</p><h2 id="assignment-title">Resources and customer</h2></div><button type="button" className="delivery-modal-close" onClick={() => setAssignmentTrip(null)} aria-label="Close">×</button></div>
             {loadingResources ? <p className="delivery-form-note">Loading available vehicles and drivers…</p> : (
               <form className="delivery-form" onSubmit={saveAssignment}>
-                <label>Vehicle<select required={!assignmentTrip.vehicleId?._id || assignmentTrip.vehicleId?.vehicleNumber === "Vehicle record unavailable"} value={assignmentForm.vehicleId} onChange={(event) => setAssignmentForm({ ...assignmentForm, vehicleId: event.target.value, driverId: "" })}><option value="">Choose available vehicle</option>{vehicles.filter((vehicle) => vehicle.status === "Available" || vehicle._id === assignmentForm.vehicleId).map((vehicle) => <option key={vehicle._id} value={vehicle._id}>{vehicle.vehicleNumber} · {vehicle.vehicleType}</option>)}</select></label>
-                <label>Driver<select required={!assignmentTrip.driverId?._id || assignmentTrip.driverId?.name === "Driver record unavailable"} disabled={!assignmentForm.vehicleId} value={assignmentForm.driverId} onChange={(event) => setAssignmentForm({ ...assignmentForm, driverId: event.target.value })}><option value="">Choose available driver</option>{drivers.filter((driver) => driver.status === "Available" || driver._id === assignmentForm.driverId || (driver.status === "Assigned" && String(driver.assignedVehicle?._id || driver.assignedVehicle) === assignmentForm.vehicleId)).map((driver) => <option key={driver._id} value={driver._id}>{driver.name} · {driver.phone}</option>)}</select></label>
+                <label>Vehicle<select required={!assignmentTrip.vehicleId?._id || assignmentTrip.vehicleId?.vehicleNumber === "Vehicle record unavailable"} value={assignmentForm.vehicleId} onChange={(event) => setAssignmentForm({ ...assignmentForm, vehicleId: event.target.value, driverId: "" })}><option value="">Choose available vehicle</option>{vehicles.filter((vehicle) => (vehicle.status === "Available" || vehicle._id === assignmentForm.vehicleId || vehicle._id === String(assignmentTrip.vehicleId?._id || "")) && locationMatches(vehicle.currentLocation, assignmentTrip.source)).map((vehicle) => <option key={vehicle._id} value={vehicle._id}>{vehicle.vehicleNumber} · {vehicle.vehicleType}</option>)}</select></label>
+                <label>Driver<select required={!assignmentTrip.driverId?._id || assignmentTrip.driverId?.name === "Driver record unavailable"} disabled={!assignmentForm.vehicleId} value={assignmentForm.driverId} onChange={(event) => setAssignmentForm({ ...assignmentForm, driverId: event.target.value })}><option value="">Choose available driver</option>{drivers.filter((driver) => (driver.status === "Available" || driver._id === assignmentForm.driverId || (driver.status === "Assigned" && String(driver.assignedVehicle?._id || driver.assignedVehicle) === assignmentForm.vehicleId)) && locationMatches(driver.currentLocation, assignmentTrip.source)).map((driver) => <option key={driver._id} value={driver._id}>{driver.name} · {driver.phone}</option>)}</select></label>
                 <label>Customer name<input value={assignmentForm.customerName} onChange={(event) => setAssignmentForm({ ...assignmentForm, customerName: event.target.value })} /></label>
                 <label>Customer email for portal updates<input type="email" value={assignmentForm.customerEmail} onChange={(event) => setAssignmentForm({ ...assignmentForm, customerEmail: event.target.value })} placeholder="customer@example.com" /></label>
                 <div className="delivery-form-actions"><button type="button" className="delivery-form-cancel" onClick={() => setAssignmentTrip(null)}>Cancel</button><button type="submit" className="delivery-add-button" disabled={savingAssignment || loadingResources}>{savingAssignment ? "Assigning…" : "Save assignment"}</button></div>

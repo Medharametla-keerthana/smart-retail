@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import DashboardLayout from "../components/DashboardLayout";
 
 function Vehicles() {
@@ -39,6 +39,32 @@ function Vehicles() {
       status: "Inactive",
     },
   ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadVehicles = async () => {
+      try {
+        const response = await fetch("/api/vehicles", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        const data = await response.json();
+        if (!response.ok) return;
+        const liveVehicles = (data.vehicles || []).map((vehicle) => ({
+          id: vehicle._id,
+          name: vehicle.model || vehicle.vehicleNumber,
+          type: vehicle.vehicleType,
+          driver: vehicle.driverId?.name || "Not Assigned",
+          status: vehicle.status === "Reserved" ? "Assigned" : vehicle.status === "On Trip" ? "Active" : vehicle.status,
+          vehicleNumber: vehicle.vehicleNumber,
+        }));
+        if (!cancelled) setVehicles(liveVehicles);
+      } catch {
+        // Keep the demo rows available if the fleet API cannot be reached.
+      }
+    };
+    loadVehicles();
+    return () => { cancelled = true; };
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddModal, setShowAddModal] = useState(false);
