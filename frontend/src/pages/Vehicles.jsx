@@ -50,7 +50,7 @@ function Vehicles() {
         const data = await response.json();
         if (!response.ok) return;
         const liveVehicles = (data.vehicles || []).map((vehicle) => ({
-          id: vehicle._id,
+          id: vehicle.vehicleNumber || vehicle._id,
           name: vehicle.model || vehicle.vehicleNumber,
           type: vehicle.vehicleType,
           driver: vehicle.driverId?.name || "Not Assigned",
@@ -171,6 +171,7 @@ function Vehicles() {
 
   function getStatusClass(status) {
     if (status === "Active") return "bg-success";
+    if (status === "Assigned") return "bg-info text-dark";
 
     if (status === "Maintenance") {
       return "bg-warning text-dark";
@@ -235,13 +236,13 @@ function Vehicles() {
             <div className="card-body">
 
               <p className="text-muted mb-1">
-                Active
+                Assigned
               </p>
 
               <h3 className="fw-bold text-success mb-0">
                 {
                   vehicles.filter(
-                    (v) => v.status === "Active"
+                    (v) => v.status === "Assigned"
                   ).length
                 }
               </h3>

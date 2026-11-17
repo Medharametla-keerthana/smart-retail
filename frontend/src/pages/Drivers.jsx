@@ -407,6 +407,7 @@ function Drivers() {
                 <th>Phone</th>
                 <th>License</th>
                 <th>Experience</th>
+                <th>Assigned vehicle</th>
                 <th>Location</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -421,7 +422,7 @@ function Drivers() {
                 <tr>
 
                   <td
-                    colSpan="7"
+                    colSpan="8"
                     className="no-drivers"
                   >
                     No drivers found
@@ -457,6 +458,10 @@ function Drivers() {
 
                     <td>
                       {driver.experience || 0} years
+                    </td>
+
+                    <td>
+                      {driver.assignedVehicle?.vehicleNumber || "Not assigned"}
                     </td>
 
                     <td>

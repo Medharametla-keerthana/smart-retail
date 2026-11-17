@@ -65,7 +65,7 @@ const createDriver = async (req, res) => {
 // Get All Drivers
 const getDrivers = async (req, res) => {
   try {
-    const drivers = await Driver.find();
+    const drivers = await Driver.find().populate("assignedVehicle", "vehicleNumber vehicleType status");
 
     res.status(200).json({
       success: true,
