@@ -19,14 +19,12 @@ function Sidebar({ sidebarOpen, closeSidebar }) {
       ]
     : role === "driver"
       ? [
-          { to: "/dashboard", icon: "bi-grid", label: "My workspace", group: "DRIVER" },
           { to: "/deliveries", icon: "bi-box-seam", label: "My deliveries", group: "DRIVER" },
           { to: "/tracking", icon: "bi-geo-alt", label: "Update location", group: "DRIVER" },
           { to: "/incidents", icon: "bi-exclamation-triangle", label: "Report incident", group: "DRIVER" },
           { to: "/notifications", icon: "bi-bell", label: "Notifications", group: "ACCOUNT" },
         ]
       : [
-          { to: "/dashboard", icon: "bi-grid", label: "Overview", group: "CUSTOMER" },
           { to: "/deliveries", icon: "bi-box-seam", label: "My deliveries", group: "CUSTOMER" },
           { to: "/notifications", icon: "bi-bell", label: "Notifications", group: "CUSTOMER" },
         ];

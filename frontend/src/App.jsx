@@ -14,13 +14,13 @@ import Analytics from "./pages/Analytics";
 import Reports from "./pages/Reports";
 import Profile from "./pages/Profile";
 import Incidents from "./pages/Incidents";
-import RoleHome from "./pages/RoleHome";
 
 function currentUser() {
   try { return JSON.parse(localStorage.getItem("user") || "null"); } catch { return null; }
 }
 
 function homeForRole(role) {
+  if (["driver", "customer"].includes(role)) return "/deliveries";
   return "/dashboard";
 }
 
@@ -71,7 +71,7 @@ function App() {
 
       <Route
         path="/dashboard"
-        element={<ProtectedRoute><>{["fleetManager", "admin", undefined].includes(currentUser()?.role) ? <Dashboard /> : <RoleHome />}</></ProtectedRoute>}
+        element={<ProtectedRoute roles={["fleetManager", "admin"]}><Dashboard /></ProtectedRoute>}
       />
 
       <Route
