@@ -380,8 +380,6 @@ function Dashboard() {
 
               </div>
 
-            </div>
-
           </>
         )}
 
