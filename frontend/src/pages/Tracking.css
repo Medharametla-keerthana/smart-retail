@@ -1,0 +1,28 @@
+.vehicle-details-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  background: rgba(15, 23, 42, .12);
+}
+
+.vehicle-details-popover {
+  position: fixed;
+  width: min(520px, calc(100vw - 24px));
+  max-height: min(440px, calc(100vh - 24px));
+  overflow-y: auto;
+  border-radius: 14px;
+  animation: vehicle-popover-in 140ms ease-out;
+}
+
+.vehicle-details-popover h6 {
+  overflow-wrap: anywhere;
+}
+
+@keyframes vehicle-popover-in {
+  from { opacity: 0; transform: translateY(-5px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vehicle-details-popover { animation: none; }
+}

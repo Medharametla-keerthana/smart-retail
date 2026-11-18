@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { readApiResponse } from "../utils/apiResponse";
+import "./Tracking.css";
 
 function Tracking() {
   const currentUser = (() => {
@@ -12,6 +13,7 @@ function Tracking() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [selectedVehiclePosition, setSelectedVehiclePosition] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -20,6 +22,28 @@ function Tracking() {
   const [locationForm, setLocationForm] = useState({ vehicleId: "", latitude: "", longitude: "", locationName: "", speed: "" });
   const [savingLocation, setSavingLocation] = useState(false);
   const [locationMessage, setLocationMessage] = useState("");
+
+  function showVehicleDetails(vehicle, event) {
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const popupWidth = Math.min(520, window.innerWidth - 24);
+    const popupHeight = Math.min(440, window.innerHeight - 24);
+    const left = Math.max(12, Math.min(bounds.left, window.innerWidth - popupWidth - 12));
+    let top = bounds.bottom + 8;
+    if (top + popupHeight > window.innerHeight - 12) {
+      top = Math.max(12, bounds.top - popupHeight - 8);
+    }
+    setSelectedVehiclePosition({ left, top });
+    setSelectedVehicle(vehicle);
+  }
+
+  useEffect(() => {
+    if (!selectedVehicle) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setSelectedVehicle(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [selectedVehicle]);
 
   const loadVehicleLocations = useCallback(async (token, fleetVehicles) => {
     const results = await Promise.allSettled(fleetVehicles.map(async (vehicle) => {
@@ -775,9 +799,7 @@ function Tracking() {
 
                         <button
                           className="btn btn-light border shadow-sm w-100 text-start p-3"
-                          onClick={() =>
-                            setSelectedVehicle(vehicle)
-                          }
+                          onClick={(event) => showVehicleDetails(vehicle, event)}
                         >
 
                           <div className="d-flex align-items-center">
@@ -845,7 +867,9 @@ function Tracking() {
 
           {selectedVehicle && (
 
-            <div className="card border-0 shadow-sm mb-4">
+            <div className="vehicle-details-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setSelectedVehicle(null)}>
+
+            <div className="card border-0 shadow-lg vehicle-details-popover" role="dialog" aria-modal="true" aria-label={`Vehicle details for ${selectedVehicle.vehicleNumber}`} style={selectedVehiclePosition || undefined} onMouseDown={(event) => event.stopPropagation()}>
 
               <div className="card-body">
 
@@ -865,6 +889,7 @@ function Tracking() {
 
                   <button
                     className="btn btn-sm btn-outline-secondary"
+                    aria-label="Close vehicle details"
                     onClick={() =>
                       setSelectedVehicle(null)
                     }
@@ -875,11 +900,11 @@ function Tracking() {
                 </div>
 
 
-                <div className="row g-4">
+                <div className="row g-3">
 
                   {/* Vehicle Number */}
 
-                  <div className="col-md-3">
+                  <div className="col-6">
 
                     <small className="text-muted">
                       Vehicle Number
@@ -894,7 +919,7 @@ function Tracking() {
 
                   {/* Vehicle Type */}
 
-                  <div className="col-md-3">
+                  <div className="col-6">
 
                     <small className="text-muted">
                       Vehicle Type
@@ -910,7 +935,7 @@ function Tracking() {
 
                   {/* Model */}
 
-                  <div className="col-md-3">
+                  <div className="col-6">
 
                     <small className="text-muted">
                       Model
@@ -925,7 +950,7 @@ function Tracking() {
 
                   {/* Location */}
 
-                  <div className="col-md-3">
+                  <div className="col-6">
 
                     <small className="text-muted">
                       Current Location
@@ -945,7 +970,7 @@ function Tracking() {
 
                   {/* Capacity */}
 
-                  <div className="col-md-3">
+                  <div className="col-6">
 
                     <small className="text-muted">
                       Capacity
@@ -960,7 +985,7 @@ function Tracking() {
 
                   {/* Driver */}
 
-                  <div className="col-md-3">
+                  <div className="col-6">
 
                     <small className="text-muted">
                       Driver
@@ -975,7 +1000,7 @@ function Tracking() {
 
                   {/* Driver Email */}
 
-                  <div className="col-md-3">
+                  <div className="col-6">
 
                     <small className="text-muted">
                       Driver Email
@@ -991,7 +1016,7 @@ function Tracking() {
 
                   {/* Status */}
 
-                  <div className="col-md-3">
+                  <div className="col-6">
 
                     <small className="text-muted">
                       Status
@@ -1022,6 +1047,8 @@ function Tracking() {
                 </div>
 
               </div>
+
+            </div>
 
             </div>
 
@@ -1188,9 +1215,7 @@ function Tracking() {
 
                             <button
                               className="btn btn-sm btn-outline-primary"
-                              onClick={() =>
-                                setSelectedVehicle(vehicle)
-                              }
+                              onClick={(event) => showVehicleDetails(vehicle, event)}
                             >
                               <i className="bi bi-eye me-1"></i>
                               View
