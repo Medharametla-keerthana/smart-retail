@@ -39,7 +39,7 @@ const getDashboardSummary = async (req, res) => {
     const totalDrivers = await Driver.countDocuments();
 
     const assignedDrivers = await Driver.countDocuments({
-      status: "Assigned",
+      status: { $in: ["Assigned", "On Trip"] },
     });
 
     const totalTrips = await Trip.countDocuments();
@@ -97,7 +97,7 @@ const getDashboardAnalytics = async (req, res) => {
     });
 
     const assignedVehicles = await Vehicle.countDocuments({
-      status: "Assigned",
+      status: { $in: ["Reserved", "On Trip"] },
     });
 
     const maintenanceVehicles = await Vehicle.countDocuments({
@@ -110,7 +110,7 @@ const getDashboardAnalytics = async (req, res) => {
     });
 
     const assignedDrivers = await Driver.countDocuments({
-      status: "Assigned",
+      status: { $in: ["Assigned", "On Trip"] },
     });
 
     // Trip statistics

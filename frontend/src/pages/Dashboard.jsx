@@ -1,58 +1,46 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { readApiResponse } from "../utils/apiResponse";
 
 function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
+  const loadDashboard = useCallback(async ({ showLoading = false } = {}) => {
+    if (showLoading) setLoading(true);
+    else setRefreshing(true);
 
-    async function loadDashboard() {
-      try {
-        const token = localStorage.getItem("token");
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Please login again.");
 
-        if (!token) {
-          if (!cancelled) {
-            setError("Please login again.");
-            setLoading(false);
-          }
-          return;
-        }
-
-        const response = await fetch(
-          "/api/dashboard/summary",
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-
-        const data = await readApiResponse(response, "Dashboard API");
-
-        if (!cancelled) {
-          setSummary(data.summary);
-          setLoading(false);
-        }
-      } catch (error) {
-        if (!cancelled) {
-          setError(error.message);
-          setLoading(false);
-        }
-      }
+      const response = await fetch("/api/dashboard/summary", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await readApiResponse(response, "Dashboard API");
+      setSummary(data.summary);
+      setError("");
+    } catch (loadError) {
+      setError(loadError.message || "Unable to load dashboard data");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-
-    loadDashboard();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
+
+  useEffect(() => {
+    loadDashboard({ showLoading: true });
+    const refreshTimer = window.setInterval(() => loadDashboard(), 30000);
+    return () => {
+      window.clearInterval(refreshTimer);
+    };
+  }, [loadDashboard]);
 
   return (
       <div className="container-fluid">
@@ -61,14 +49,15 @@ function Dashboard() {
             DASHBOARD HEADER
         ========================== */}
 
-        <div className="mb-4">
-          <h2 className="fw-bold">
-            Dashboard
-          </h2>
-
-          <p className="text-muted">
-            Smart Real-Time Fleet Logistics Monitor
-          </p>
+        <div className="mb-4 d-flex justify-content-between align-items-start gap-3">
+          <div>
+            <h2 className="fw-bold">Dashboard</h2>
+            <p className="text-muted mb-0">Smart Real-Time Fleet Logistics Monitor</p>
+          </div>
+          <button className="btn btn-outline-primary" type="button" onClick={() => loadDashboard()} disabled={refreshing}>
+            <i className={`bi ${refreshing ? "bi-arrow-repeat" : "bi-arrow-clockwise"} me-2`} aria-hidden="true" />
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
         </div>
 
         {/* =========================
@@ -94,7 +83,7 @@ function Dashboard() {
             ERROR
         ========================== */}
 
-        {!loading && error && (
+        {!loading && error && !summary && (
           <div className="alert alert-danger">
             {error}
           </div>
@@ -104,7 +93,7 @@ function Dashboard() {
             DASHBOARD DATA
         ========================== */}
 
-        {!loading && !error && summary && (
+        {!loading && summary && (
           <>
 
             {/* =========================
