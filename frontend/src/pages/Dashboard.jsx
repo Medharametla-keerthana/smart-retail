@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { readApiResponse } from "../utils/apiResponse";
 
 function Dashboard() {
@@ -116,7 +117,7 @@ function Dashboard() {
 
               <div className="col-md-6 col-lg-3">
 
-                <div className="card border-0 shadow-sm h-100">
+                <Link to="/vehicles" className="card border-0 shadow-sm h-100 dashboard-action-card">
 
                   <div className="card-body">
 
@@ -140,7 +141,7 @@ function Dashboard() {
 
                   </div>
 
-                </div>
+                </Link>
 
               </div>
 
@@ -149,7 +150,7 @@ function Dashboard() {
 
               <div className="col-md-6 col-lg-3">
 
-                <div className="card border-0 shadow-sm h-100">
+                <Link to="/vehicles" className="card border-0 shadow-sm h-100 dashboard-action-card">
 
                   <div className="card-body">
 
@@ -173,7 +174,7 @@ function Dashboard() {
 
                   </div>
 
-                </div>
+                </Link>
 
               </div>
 
@@ -182,7 +183,7 @@ function Dashboard() {
 
               <div className="col-md-6 col-lg-3">
 
-                <div className="card border-0 shadow-sm h-100">
+                <Link to="/drivers" className="card border-0 shadow-sm h-100 dashboard-action-card">
 
                   <div className="card-body">
 
@@ -206,7 +207,7 @@ function Dashboard() {
 
                   </div>
 
-                </div>
+                </Link>
 
               </div>
 
@@ -215,7 +216,7 @@ function Dashboard() {
 
               <div className="col-md-6 col-lg-3">
 
-                <div className="card border-0 shadow-sm h-100">
+                <Link to="/drivers" className="card border-0 shadow-sm h-100 dashboard-action-card">
 
                   <div className="card-body">
 
@@ -239,7 +240,7 @@ function Dashboard() {
 
                   </div>
 
-                </div>
+                </Link>
 
               </div>
 
@@ -262,7 +263,7 @@ function Dashboard() {
 
                 <div className="col-md-6 col-lg-3">
 
-                  <div className="card border-0 shadow-sm h-100">
+                  <Link to="/deliveries" className="card border-0 shadow-sm h-100 dashboard-action-card">
 
                     <div className="card-body">
 
@@ -276,7 +277,7 @@ function Dashboard() {
 
                     </div>
 
-                  </div>
+                  </Link>
 
                 </div>
 
@@ -285,7 +286,7 @@ function Dashboard() {
 
                 <div className="col-md-6 col-lg-3">
 
-                  <div className="card border-0 shadow-sm h-100">
+                  <Link to="/deliveries" className="card border-0 shadow-sm h-100 dashboard-action-card">
 
                     <div className="card-body">
 
@@ -299,7 +300,7 @@ function Dashboard() {
 
                     </div>
 
-                  </div>
+                  </Link>
 
                 </div>
 
@@ -308,7 +309,7 @@ function Dashboard() {
 
                 <div className="col-md-6 col-lg-3">
 
-                  <div className="card border-0 shadow-sm h-100">
+                  <Link to="/deliveries" className="card border-0 shadow-sm h-100 dashboard-action-card">
 
                     <div className="card-body">
 
@@ -322,7 +323,7 @@ function Dashboard() {
 
                     </div>
 
-                  </div>
+                  </Link>
 
                 </div>
 
@@ -331,7 +332,7 @@ function Dashboard() {
 
                 <div className="col-md-6 col-lg-3">
 
-                  <div className="card border-0 shadow-sm h-100">
+                  <Link to="/deliveries" className="card border-0 shadow-sm h-100 dashboard-action-card">
 
                     <div className="card-body">
 
@@ -345,7 +346,7 @@ function Dashboard() {
 
                     </div>
 
-                  </div>
+                  </Link>
 
                 </div>
 
@@ -360,7 +361,7 @@ function Dashboard() {
 
             <div className="mt-4">
 
-              <div className="card border-0 shadow-sm">
+                <Link to="/deliveries" className="card border-0 shadow-sm dashboard-action-card">
 
                 <div className="card-body">
 
@@ -385,6 +386,8 @@ function Dashboard() {
                   </div>
 
                 </div>
+
+                </Link>
 
               </div>
 

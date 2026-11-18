@@ -9,6 +9,18 @@ const notifyCustomer = async (trip, title, message, category = "Delivery", incid
   await Notification.create({ recipientEmail: trip.customerEmail, title, message, category, tripId: trip._id, incidentId });
 };
 
+const notifyDriver = async (trip, driver) => {
+  if (!driver?.email) return;
+  await Notification.create({
+    recipientEmail: driver.email,
+    title: "New delivery assigned",
+    message: `${trip.deliveryId || `Delivery ${String(trip._id).slice(-6)}`} has been assigned to you. Pickup: ${trip.source}. Destination: ${trip.destination}.`,
+    category: "Delivery",
+    tripId: trip._id,
+    actionUrl: "/deliveries",
+  });
+};
+
 const roleFilter = (user, driver) => user.role === "driver"
   ? { driverId: driver?._id }
   : user.role === "customer"
@@ -103,6 +115,7 @@ const createTrip = async (req, res) => {
     });
 
     await notifyCustomer(trip, "Delivery scheduled", `Your delivery from ${trip.source} to ${trip.destination} has been scheduled.`);
+    await notifyDriver(trip, driver);
 
     res.status(201).json({
       success: true,
@@ -136,7 +149,8 @@ const assignTripResources = async (req, res) => {
 
     const [vehicle, driver] = await Promise.all([Vehicle.findById(vehicleId), Driver.findById(driverId)]);
     if (!vehicle || !driver) return res.status(404).json({ success: false, message: "The selected vehicle or driver was not found" });
-    const resourcesChanged = String(trip.vehicleId || "") !== String(vehicle._id) || String(trip.driverId || "") !== String(driver._id);
+    const driverChanged = String(trip.driverId || "") !== String(driver._id);
+    const resourcesChanged = String(trip.vehicleId || "") !== String(vehicle._id) || driverChanged;
     if (resourcesChanged && (vehicle.status !== "Available" || !["Available", "Assigned"].includes(driver.status))) {
       return res.status(409).json({ success: false, message: "The selected vehicle or driver is unavailable" });
     }
@@ -168,6 +182,7 @@ const assignTripResources = async (req, res) => {
     if (customerName !== undefined) trip.customerName = String(customerName).trim();
     if (customerEmail !== undefined) trip.customerEmail = String(customerEmail).trim().toLowerCase();
     await trip.save();
+    if (driverChanged) await notifyDriver(trip, driver);
     if (trip.customerEmail) await notifyCustomer(trip, "Delivery details updated", `Your delivery from ${trip.source} to ${trip.destination} is linked to your customer account.`);
     const assigned = await Trip.findById(trip._id)
       .populate("vehicleId", "vehicleNumber vehicleType status currentLocation")
